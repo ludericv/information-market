@@ -8,8 +8,7 @@ class ViewController:
         self.fps = fps
         self.root = tk.Tk()
         self.root.title("Simulator")
-        self.root.geometry(f'{width}x{height}')
-        self.canvas = tk.Canvas(self.root, highlightthickness=0)
+        self.canvas = tk.Canvas(self.root, width=width, height=height, highlightthickness=0)
         self.canvas.configure(bg="white")
         self.canvas.pack(fill="both", expand=True)
         self.last_frame_time = time.time()
