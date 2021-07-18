@@ -20,8 +20,8 @@ class Environment:
     def create_robots(self):
         for id in range(self.nb_robots):
             robot = Agent(id=id,
-                          x=randint(0, self.width-1),
-                          y=randint(0, self.height-1),
+                          x=randint(self.robot_radius, self.width-1-self.robot_radius),
+                          y=randint(self.robot_radius, self.height-1-self.robot_radius),
                           speed=self.robot_speed,
                           radius=self.robot_radius,
                           environment=self)

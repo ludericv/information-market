@@ -16,8 +16,8 @@ class Agent:
         return f"Bip boop, I am bot {self.id}, located at ({self.x}, {self.y}), with orientation {round(self.orientation, 2)}"
 
     def step(self):
-        self.add_orientation_noise()
         self.move()
+        self.add_orientation_noise()
 
     def move(self):
         dx = self.speed * cos(radians(self.orientation))
@@ -33,11 +33,11 @@ class Agent:
         self.orientation = (-self.orientation) % 360
 
     def add_orientation_noise(self):
-        self.orientation = (self.orientation + (random()-0.5)*25) % 360
+        self.orientation = (self.orientation + (random() - 0.5) * 25) % 360
 
     def draw(self, canvas):
-        ball = canvas.create_oval(self.x - self.radius,
-                                  self.y - self.radius,
-                                  self.x + self.radius,
-                                  self.y + self.radius,
-                                  fill="blue")
+        circle = canvas.create_oval(self.x - self.radius,
+                                    self.y - self.radius,
+                                    self.x + self.radius,
+                                    self.y + self.radius,
+                                    fill="blue")
