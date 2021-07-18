@@ -4,39 +4,45 @@ from random import randint
 
 class Environment:
 
-    def __init__(self, config_file="config.txt"):
-        self.parameters = dict()
-        self.read_config(config_file)
+    def __init__(self, width=500, height=500, nb_robots=30, robot_speed=3, robot_radius=5):
         self.population = list()
+        self.width = width
+        self.height = height
+        self.nb_robots = nb_robots
+        self.robot_speed = robot_speed
+        self.robot_radius = robot_radius
         self.create_robots()
 
-    def read_config(self, config_file):
-        with open(config_file, "r") as file:
-            for line in file:
-                args = line.strip().split("=")
-                parameter = args[0]
-                value = args[1]
-                self.parameters[parameter] = int(value)
+    def step(self):
+        for robot in self.population:
+            robot.step()
 
     def create_robots(self):
-        for id in range(self.parameters["NB_ROBOTS"]):
+        for id in range(self.nb_robots):
             robot = Agent(id=id,
-                          x=randint(0, self.parameters["WIDTH"]-1),
-                          y=randint(0, self.parameters["HEIGHT"]-1),
-                          speed=self.parameters["ROBOT_SPEED"],
+                          x=randint(0, self.width-1),
+                          y=randint(0, self.height-1),
+                          speed=self.robot_speed,
+                          radius=self.robot_radius,
                           environment=self)
             self.population.append(robot)
 
-    def start_simulation(self):
-        for tick in range(self.parameters["SIMULATION_STEPS"]):
-            for robot in self.population:
-                robot.step()
-            print(self.population[0])
-
     def check_border_collision(self, robot, newX, newY):
-        if newX >= self.parameters["WIDTH"] or newX < 0:
+        if newX+robot.radius >= self.width or newX-robot.radius < 0:
             robot.flip_horizontally()
 
-        if newY >= self.parameters["HEIGHT"] or newY < 0:
+        if newY+robot.radius >= self.height or newY-robot.radius < 0:
             robot.flip_vertically()
+
+    def get_robot_positions(self):
+        xdata = []
+        ydata = []
+        for robot in self.population:
+            xdata.append(robot.x)
+            ydata.append(robot.y)
+        return xdata, ydata
+
+    def draw(self, canvas):
+        for robot in self.population:
+            robot.draw(canvas)
 

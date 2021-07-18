@@ -1,8 +1,10 @@
-from environment import Environment
+from main_controller import MainController
+
 
 def main():
-    env = Environment(config_file="config.txt")
-    env.start_simulation()
+    controller = MainController(config_file="config.txt")
+    controller.start_simulation()
+
 
 if __name__ == '__main__':
     main()

@@ -3,11 +3,12 @@ from math import sin, cos, radians
 
 
 class Agent:
-    def __init__(self, id, x, y, speed, environment):
+    def __init__(self, id, x, y, speed, radius, environment):
         self.id = id
         self.x = x
         self.y = y
         self.speed = speed
+        self.radius = radius
         self.orientation = random() * 360  # 360 degree angle
         self.environment = environment
 
@@ -15,6 +16,7 @@ class Agent:
         return f"Bip boop, I am bot {self.id}, located at ({self.x}, {self.y}), with orientation {round(self.orientation, 2)}"
 
     def step(self):
+        self.add_orientation_noise()
         self.move()
 
     def move(self):
@@ -29,3 +31,13 @@ class Agent:
 
     def flip_vertically(self):
         self.orientation = (-self.orientation) % 360
+
+    def add_orientation_noise(self):
+        self.orientation = (self.orientation + (random()-0.5)*25) % 360
+
+    def draw(self, canvas):
+        ball = canvas.create_oval(self.x - self.radius,
+                                  self.y - self.radius,
+                                  self.x + self.radius,
+                                  self.y + self.radius,
+                                  fill="blue")
