@@ -12,10 +12,14 @@ class MainController:
                                        self.parameters["NB_ROBOTS"],
                                        self.parameters["ROBOT_SPEED"],
                                        self.parameters["ROBOT_RADIUS"])
+        self.tick = 0
         if self.parameters["VISUALIZE"] != 0:
-            self.view_controller = ViewController(self.parameters["WIDTH"],
+            self.view_controller = ViewController(self,
+                                                  self.parameters["WIDTH"],
                                                   self.parameters["HEIGHT"],
                                                   self.parameters["FPS"])
+        else:
+            self.start_simulation()
 
     def read_config(self, config_file):
         with open(config_file, "r") as file:
@@ -25,10 +29,14 @@ class MainController:
                 value = args[1]
                 self.parameters[parameter] = int(value)
 
-    def start_simulation(self):
-        for tick in range(self.parameters["SIMULATION_STEPS"]):
+    def step(self):
+        if self.tick < self.parameters["SIMULATION_STEPS"]:
+            self.tick += 1
             self.environment.step()
-            if self.parameters["VISUALIZE"] != 0:
-                self.view_controller.update(self.environment, tick)
-            else:
-                print(self.environment.population[0])
+
+    def start_simulation(self):
+        for step_nb in range(self.parameters["SIMULATION_STEPS"]):
+            self.step()
+            print(self.environment.population[0])
+
+
