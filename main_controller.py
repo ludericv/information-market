@@ -11,7 +11,15 @@ class MainController:
                                        self.parameters["HEIGHT"],
                                        self.parameters["NB_ROBOTS"],
                                        self.parameters["ROBOT_SPEED"],
-                                       self.parameters["ROBOT_RADIUS"])
+                                       self.parameters["ROBOT_RADIUS"],
+                                       self.parameters["RDWALK_FACTOR"],
+                                       self.parameters["FOOD_X"],
+                                       self.parameters["FOOD_Y"],
+                                       self.parameters["FOOD_RADIUS"],
+                                       self.parameters["NEST_X"],
+                                       self.parameters["NEST_Y"],
+                                       self.parameters["NEST_RADIUS"]
+                                       )
         self.tick = 0
         if self.parameters["VISUALIZE"] != 0:
             self.view_controller = ViewController(self,
@@ -27,7 +35,13 @@ class MainController:
                 args = line.strip().split("=")
                 parameter = args[0]
                 value = args[1]
-                self.parameters[parameter] = int(value)
+                self.add_to_parameters(parameter, value)
+
+    def add_to_parameters(self, parameter, value):
+        if parameter == "RDWALK_FACTOR" or parameter == "ROBOT_SPEED":
+            self.parameters[parameter] = float(value)
+        else:
+            self.parameters[parameter] = int(value)
 
     def step(self):
         if self.tick < self.parameters["SIMULATION_STEPS"]:
@@ -38,5 +52,3 @@ class MainController:
         for step_nb in range(self.parameters["SIMULATION_STEPS"]):
             self.step()
             print(self.environment.population[0])
-
-

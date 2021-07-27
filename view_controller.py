@@ -25,12 +25,12 @@ class ViewController:
         self.canvas.delete("all")
         self.controller.step()
         self.controller.environment.draw(self.canvas)
-
+        self.canvas.create_text(50, 10, fill="black",
+                                text=f"{round(self.fps)} FPS - step {self.controller.tick}")
         # Count elapsed time and schedule next update
         diff = time.time() - self.last_frame_time
         self.last_frame_time = time.time()
-        self.canvas.create_text(50, 10, fill="black",
-                                text=f"{round(self.fps)} FPS - step {self.controller.tick}")
+
         remaining_duration = 1.0 / self.fps_cap - diff
         if remaining_duration < 0:
             remaining_duration = 0
