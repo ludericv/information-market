@@ -1,5 +1,6 @@
 from agent import Agent
 from random import randint
+import numpy as np
 
 
 class Environment:
@@ -44,18 +45,18 @@ class Environment:
         return collide_x, collide_y
 
     def senses_food(self, robot):
-        dist_from_center = (robot.x - self.food[0])**2 + (robot.y - self.food[1])**2
+        dist_from_center = (robot.pos[0] - self.food[0])**2 + (robot.pos[1] - self.food[1])**2
         return dist_from_center < self.food[2]**2
 
     def senses_nest(self, robot):
-        dist_from_center = (robot.x - self.nest[0]) ** 2 + (robot.y - self.nest[1]) ** 2
+        dist_from_center = (robot.pos[0] - self.nest[0]) ** 2 + (robot.pos[1] - self.nest[1]) ** 2
         return dist_from_center < self.nest[2] ** 2
 
     def get_food_location(self):
-        return self.food[0], self.food[1]
+        return np.array([self.food[0], self.food[1]])
 
     def get_nest_location(self):
-        return self.nest[0], self.nest[1]
+        return np.array([self.nest[0], self.nest[1]])
 
     def draw(self, canvas):
         self.draw_zones(canvas)
