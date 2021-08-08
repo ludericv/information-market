@@ -23,7 +23,9 @@ def get_orientation_from_vector(vector):
 
 class Agent:
     thetas = np.arange(0, 360)
-    weights = []
+    max_levi_steps = 1000
+    crw_weights = []
+    levi_weights = []
     colors = {State.EXPLORING: "blue", State.SEEKING_FOOD: "orange", State.SEEKING_NEST: "green"}
 
     def __init__(self, robot_id, x, y, speed, radius, rdwalk_factor, environment):
@@ -37,7 +39,9 @@ class Agent:
         self.environment = environment
         self.state = State.EXPLORING
         self.reward = 0
-        self.weights = self.crw_pdf(self.thetas)
+        self.crw_weights = self.crw_pdf(self.thetas)
+        self.levi_weights = self.levi_pdf(self.max_levi_steps)
+        self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=200)
         self.food_location_vector = np.array([0, 0]).astype('float64')
         self.nest_location_vector = np.array([0, 0]).astype('float64')
@@ -46,7 +50,7 @@ class Agent:
         self.carries_food = False
 
     def __str__(self):
-        return f"Bip boop, I am bot {self.id}, located at ({self.x}, {self.y})"
+        return f"Bip boop, I am bot {self.id}, located at ({self.pos[0]}, {self.pos[1]})"
 
     def step(self):
         self.move()
@@ -94,7 +98,9 @@ class Agent:
     def update_orientation_based_on_state(self):
 
         if self.state == State.EXPLORING:
-            self.turn_randomly()
+            if self.levi_counter <= 1:
+                self.turn_randomly()
+            self.update_levi_counter()
         elif self.state == State.SEEKING_FOOD:
             self.orientation = get_orientation_from_vector(self.food_location_vector)
         elif self.state == State.SEEKING_NEST:
@@ -119,10 +125,16 @@ class Agent:
             self.flip_horizontally()
         if collide_y:
             self.flip_vertically()
+
         self.pos += self.displacement
 
+    def update_levi_counter(self):
+        self.levi_counter -= 1
+        if self.levi_counter <= 0:
+            self.levi_counter = choices(range(1, self.max_levi_steps + 1), self.levi_weights)[0]
+
     def turn_randomly(self):
-        angle = choices(self.thetas, self.weights)[0]
+        angle = choices(self.thetas, self.crw_weights)[0]
         self.orientation = (self.orientation + angle) % 360
 
     def flip_horizontally(self):
@@ -164,3 +176,8 @@ class Agent:
                 f = num / denom
             res.append(f)
         return res
+
+    def levi_pdf(self, max_steps):
+        alpha = 1.4
+        pdf = [step ** (-alpha - 1) for step in range(1, max_steps + 1)]
+        return pdf
