@@ -1,4 +1,4 @@
-from random import random, choices
+from random import random, choices, gauss
 from math import sin, cos, radians, pi, atan2
 from tkinter import LAST
 from enum import Enum
@@ -34,14 +34,17 @@ class Agent:
     levi_weights = []
     colors = {State.EXPLORING: "blue", State.SEEKING_FOOD: "orange", State.SEEKING_NEST: "green"}
 
-    def __init__(self, robot_id, x, y, speed, radius, rdwalk_factor, environment):
+    def __init__(self, robot_id, x, y, speed, radius, rdwalk_factor, levi_factor,
+                 noise_mu, noise_musd, noise_sd, environment):
         self.id = robot_id
         self.pos = np.array([x, y]).astype('float64')
         self.speed = speed
         self.radius = radius
         self.rdwalk_factor = rdwalk_factor
+        self.levi_factor = levi_factor
         self.orientation = random() * 360  # 360 degree angle
         self.displacement = np.array([0, 0]).astype('float64')
+        self.noise_mu, self.noise_sd = self.sample_noise(noise_mu, noise_musd, noise_sd)
         self.environment = environment
         self.state = State.SEEKING_FOOD
         self.reward = 0
@@ -83,7 +86,7 @@ class Agent:
         max_x_gap = max(trace_x) - min(trace_x)
         max_y_gap = max(trace_y) - min(trace_y)
 
-        return max_x_gap < tolerance * self.speed and max_y_gap < tolerance * self.speed
+        return max_x_gap < tolerance * self.speed * self.noise_sd * 6 and max_y_gap < tolerance * self.speed * self.noise_sd * 6
 
     def update_behavior(self):
         sensing_food = self.environment.senses_food(self)
@@ -158,14 +161,17 @@ class Agent:
             self.flip_vertically()
 
         # Real movement, subject to noise, clamped to borders
-        n_hor = 0.25 * self.speed * (random() - 0.3)
-        n_vert = -0.25 * self.speed * (random() - 0.5)
+        noise_amt = gauss(self.noise_mu, self.noise_sd)
+        n_hor = noise_amt * self.speed
+        n_vert = -noise_amt * self.speed
         noise_rel = np.array([n_vert, n_hor])  # noise vector in robot's relative coordinates
         noise = rotation_matrix(self.orientation).dot(noise_rel)  # noise vector in absolute (x, y) coordinates
-        self.pos = self.clamp_to_map(self.pos + self.displacement + noise)
+        real_displacement = (self.displacement + noise) * (self.speed/norm(self.displacement + noise))
+        self.pos = self.clamp_to_map(self.pos + real_displacement)
 
     def turn(self, angle):
-        noise_angle = 2 * (random() - 0.5)
+        noise_angle = gauss(self.noise_mu, self.noise_sd)
+        #noise_angle = 2 * (random() - 0.5)
         self.rotate_vectors(noise_angle)
         self.orientation = (self.orientation + angle) % 360
 
@@ -211,7 +217,7 @@ class Agent:
                                     self.pos[0] + self.radius,
                                     self.pos[1] + self.radius,
                                     fill=self.colors[self.state])
-        #self.draw_goal_vector(canvas)
+        self.draw_goal_vector(canvas)
         self.draw_trace(canvas)
 
     def draw_trace(self, canvas):
@@ -238,6 +244,11 @@ class Agent:
         return res
 
     def levi_pdf(self, max_steps):
-        alpha = 1.4
+        alpha = self.levi_factor
         pdf = [step ** (-alpha - 1) for step in range(1, max_steps + 1)]
         return pdf
+
+    def sample_noise(self, noise_mu, noise_musd, noise_sd):
+        mu = gauss(noise_mu, noise_musd)
+        print(f"{self}, noise sampled: {mu, noise_sd}")
+        return mu, noise_sd

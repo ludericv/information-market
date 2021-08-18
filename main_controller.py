@@ -7,18 +7,22 @@ class MainController:
     def __init__(self, config_file="config.txt"):
         self.parameters = dict()
         self.read_config(config_file)
-        self.environment = Environment(self.parameters["WIDTH"],
-                                       self.parameters["HEIGHT"],
-                                       self.parameters["NB_ROBOTS"],
-                                       self.parameters["ROBOT_SPEED"],
-                                       self.parameters["ROBOT_RADIUS"],
-                                       self.parameters["RDWALK_FACTOR"],
-                                       self.parameters["FOOD_X"],
-                                       self.parameters["FOOD_Y"],
-                                       self.parameters["FOOD_RADIUS"],
-                                       self.parameters["NEST_X"],
-                                       self.parameters["NEST_Y"],
-                                       self.parameters["NEST_RADIUS"]
+        self.environment = Environment(width=self.parameters["WIDTH"],
+                                       height=self.parameters["HEIGHT"],
+                                       nb_robots=self.parameters["NB_ROBOTS"],
+                                       robot_speed=self.parameters["ROBOT_SPEED"],
+                                       robot_radius=self.parameters["ROBOT_RADIUS"],
+                                       rdwalk_factor=self.parameters["RDWALK_FACTOR"],
+                                       levi_factor=self.parameters["LEVI_FACTOR"],
+                                       food_x=self.parameters["FOOD_X"],
+                                       food_y=self.parameters["FOOD_Y"],
+                                       food_radius=self.parameters["FOOD_RADIUS"],
+                                       nest_x=self.parameters["NEST_X"],
+                                       nest_y=self.parameters["NEST_Y"],
+                                       nest_radius=self.parameters["NEST_RADIUS"],
+                                       noise_mu=self.parameters["NOISE_MU"],
+                                       noise_musd=self.parameters["NOISE_MUSD"],
+                                       noise_sd=self.parameters["NOISE_SD"]
                                        )
         self.tick = 0
         if self.parameters["VISUALIZE"] != 0:
@@ -38,7 +42,8 @@ class MainController:
                 self.add_to_parameters(parameter, value)
 
     def add_to_parameters(self, parameter, value):
-        if parameter == "RDWALK_FACTOR" or parameter == "ROBOT_SPEED":
+        float_params = {"RDWALK_FACTOR", "ROBOT_SPEED", "LEVI_FACTOR", "NOISE_MU", "NOISE_MUSD", "NOISE_SD"}
+        if parameter in float_params:
             self.parameters[parameter] = float(value)
         else:
             self.parameters[parameter] = int(value)

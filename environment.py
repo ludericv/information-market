@@ -6,7 +6,8 @@ import numpy as np
 class Environment:
 
     def __init__(self, width=500, height=500, nb_robots=30, robot_speed=3, robot_radius=5, rdwalk_factor=0,
-                 food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25):
+                 levi_factor=2, food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25, noise_mu=0,
+                 noise_musd=1, noise_sd=0.1):
         self.population = list()
         self.width = width
         self.height = height
@@ -14,8 +15,12 @@ class Environment:
         self.robot_speed = robot_speed
         self.robot_radius = robot_radius
         self.rdwalk_factor = rdwalk_factor
+        self.levi_factor = levi_factor
         self.food = (food_x, food_y, food_radius)
         self.nest = (nest_x, nest_y, nest_radius)
+        self.noise_mu = noise_mu
+        self.noise_musd = noise_musd
+        self.noise_sd = noise_sd
         self.create_robots()
 
     def step(self):
@@ -30,6 +35,10 @@ class Environment:
                           speed=self.robot_speed,
                           radius=self.robot_radius,
                           rdwalk_factor=self.rdwalk_factor,
+                          levi_factor=self.levi_factor,
+                          noise_mu=self.noise_mu,
+                          noise_musd=self.noise_musd,
+                          noise_sd=self.noise_sd,
                           environment=self)
             self.population.append(robot)
 
