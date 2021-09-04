@@ -11,6 +11,7 @@ class MainController:
                                        height=self.parameters["HEIGHT"],
                                        nb_robots=self.parameters["NB_ROBOTS"],
                                        robot_speed=self.parameters["ROBOT_SPEED"],
+                                       comm_radius=self.parameters["COMM_RADIUS"],
                                        robot_radius=self.parameters["ROBOT_RADIUS"],
                                        rdwalk_factor=self.parameters["RDWALK_FACTOR"],
                                        levi_factor=self.parameters["LEVI_FACTOR"],
@@ -42,7 +43,7 @@ class MainController:
                 self.add_to_parameters(parameter, value)
 
     def add_to_parameters(self, parameter, value):
-        float_params = {"RDWALK_FACTOR", "ROBOT_SPEED", "LEVI_FACTOR", "NOISE_MU", "NOISE_MUSD", "NOISE_SD"}
+        float_params = {"RDWALK_FACTOR", "ROBOT_SPEED", "LEVI_FACTOR", "NOISE_MU", "NOISE_MUSD", "NOISE_SD", "COMM_RADIUS"}
         if parameter in float_params:
             self.parameters[parameter] = float(value)
         else:

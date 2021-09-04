@@ -1,11 +1,16 @@
-from agent import Agent
+from agent import Agent, norm
 from random import randint
+from copy import deepcopy
 import numpy as np
+
+
+def distance_between(robot1, robot2):
+    return norm(robot2.pos - robot1.pos)
 
 
 class Environment:
 
-    def __init__(self, width=500, height=500, nb_robots=30, robot_speed=3, robot_radius=5, rdwalk_factor=0,
+    def __init__(self, width=500, height=500, nb_robots=30, robot_speed=3, robot_radius=5, comm_radius=25, rdwalk_factor=0,
                  levi_factor=2, food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25, noise_mu=0,
                  noise_musd=1, noise_sd=0.1):
         self.population = list()
@@ -14,6 +19,7 @@ class Environment:
         self.nb_robots = nb_robots
         self.robot_speed = robot_speed
         self.robot_radius = robot_radius
+        self.robot_communication_radius = comm_radius
         self.rdwalk_factor = rdwalk_factor
         self.levi_factor = levi_factor
         self.food = (food_x, food_y, food_radius)
@@ -24,7 +30,19 @@ class Environment:
         self.create_robots()
 
     def step(self):
+        # compute neighbors
+        pop_size = len(self.population)
+        neighbors_table = [[] for i in range(pop_size)]
+        for id1 in range(pop_size):
+            for id2 in range(id1+1, pop_size):
+                if distance_between(self.population[id1], self.population[id2]) < self.robot_communication_radius:
+                    neighbors_table[id1].append(deepcopy(self.population[id2]))
+                    neighbors_table[id2].append(deepcopy(self.population[id1]))
+        print(neighbors_table)
+
+        # iterate over robots
         for robot in self.population:
+            robot.set_neighbors(neighbors_table[robot.id])
             robot.step()
 
     def create_robots(self):

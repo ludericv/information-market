@@ -3,6 +3,7 @@ from math import sin, cos, radians, pi, atan2
 from tkinter import LAST
 from enum import Enum
 from collections import deque
+from navigation import Location, NavigationTable
 import numpy as np
 
 
@@ -46,6 +47,7 @@ class Agent:
         self.displacement = np.array([0, 0]).astype('float64')
         self.noise_mu, self.noise_sd = self.sample_noise(noise_mu, noise_musd, noise_sd)
         self.environment = environment
+        self.neighbors = []
         self.state = State.SEEKING_FOOD
         self.reward = 0
         self.crw_weights = self.crw_pdf(self.thetas)
@@ -56,6 +58,11 @@ class Agent:
         # self.nest_location_vector = np.array([0, 0]).astype('float64')
         # self.knows_food_location = False
         # self.knows_nest_location = False
+        self.navigation_table = NavigationTable()
+        self.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)
+        self.navigation_table.set_location_vector(Location.NEST, self.environment.get_nest_location() - self.pos)
+        self.navigation_table.set_location_known(Location.FOOD, True)
+        self.navigation_table.set_location_known(Location.NEST, True)
         self.food_location_vector = self.environment.get_food_location() - self.pos
         self.nest_location_vector = self.environment.get_nest_location() - self.pos
         self.knows_food_location = True
@@ -65,12 +72,23 @@ class Agent:
     def __str__(self):
         return f"Bip boop, I am bot {self.id}, located at ({self.pos[0]}, {self.pos[1]})"
 
+    def __repr__(self):
+        return f"bot {self.id}"
+
     def step(self):
+        self.communicate()
         self.move()
         self.update_trace()
         self.update_goal_vectors()
         self.update_behavior()
         self.update_orientation_based_on_state()
+
+    def communicate(self):
+        for neighbor in self.neighbors:
+            # compare information
+            # if information more recent: replace own information
+            # pay
+            pass
 
     def update_trace(self):
         self.trace.appendleft(self.pos[1])
@@ -86,7 +104,7 @@ class Agent:
         max_x_gap = max(trace_x) - min(trace_x)
         max_y_gap = max(trace_y) - min(trace_y)
 
-        return max_x_gap < tolerance * self.speed * self.noise_sd * 6 and max_y_gap < tolerance * self.speed * self.noise_sd * 6
+        return max_x_gap < tolerance * self.speed and max_y_gap < tolerance * self.speed
 
     def update_behavior(self):
         sensing_food = self.environment.senses_food(self)
@@ -143,6 +161,7 @@ class Agent:
         self.nest_location_vector -= self.displacement
 
     def set_food_vector(self):
+        self.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)
         self.food_location_vector = self.environment.get_food_location() - self.pos
 
     def set_nest_vector(self):
@@ -163,7 +182,8 @@ class Agent:
         # Real movement, subject to noise, clamped to borders
         noise_amt = gauss(self.noise_mu, self.noise_sd)
         n_hor = noise_amt * self.speed
-        n_vert = -noise_amt * self.speed
+        n_vert = 0
+
         noise_rel = np.array([n_vert, n_hor])  # noise vector in robot's relative coordinates
         noise = rotation_matrix(self.orientation).dot(noise_rel)  # noise vector in absolute (x, y) coordinates
         real_displacement = (self.displacement + noise) * (self.speed/norm(self.displacement + noise))
@@ -224,12 +244,11 @@ class Agent:
         tail = canvas.create_line(*self.trace)
 
     def draw_goal_vector(self, canvas):
-        goal_vector = np.array([0, 0])
-        if self.state == State.SEEKING_FOOD:
-            goal_vector = self.food_location_vector
-        elif self.state == State.SEEKING_NEST:
-            goal_vector = self.nest_location_vector
-        arrow = canvas.create_line(self.pos[0], self.pos[1], self.pos[0] + goal_vector[0], self.pos[1] + goal_vector[1],
+
+        arrow = canvas.create_line(self.pos[0], self.pos[1], self.pos[0] + self.food_location_vector[0], self.pos[1] + self.food_location_vector[1],
+                                   arrow=LAST)
+        arrow = canvas.create_line(self.pos[0], self.pos[1], self.pos[0] + self.nest_location_vector[0],
+                                   self.pos[1] + self.nest_location_vector[1],
                                    arrow=LAST)
 
     def crw_pdf(self, thetas):
@@ -252,3 +271,6 @@ class Agent:
         mu = gauss(noise_mu, noise_musd)
         print(f"{self}, noise sampled: {mu, noise_sd}")
         return mu, noise_sd
+
+    def set_neighbors(self, neighbors):
+        self.neighbors = neighbors
