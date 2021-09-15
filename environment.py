@@ -1,6 +1,7 @@
-from agent import Agent, norm
+from agent import Agent
+from utils import norm
 from random import randint
-from copy import deepcopy
+from copy import deepcopy, copy
 import numpy as np
 
 
@@ -36,13 +37,18 @@ class Environment:
         for id1 in range(pop_size):
             for id2 in range(id1+1, pop_size):
                 if distance_between(self.population[id1], self.population[id2]) < self.robot_communication_radius:
-                    neighbors_table[id1].append(deepcopy(self.population[id2]))
-                    neighbors_table[id2].append(deepcopy(self.population[id1]))
-        print(neighbors_table)
+                    neighbors_table[id1].append(self.population[id2])
+                    neighbors_table[id2].append(self.population[id1])
 
-        # iterate over robots
+
+        # Iterate over robots
+        # 1. Negotiation/communication
         for robot in self.population:
-            robot.set_neighbors(neighbors_table[robot.id])
+            #print(neighbors_table[robot.id])
+            robot.communicate(neighbors_table[robot.id])
+
+        # 2. Move
+        for robot in self.population:
             robot.step()
 
     def create_robots(self):
