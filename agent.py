@@ -7,6 +7,7 @@ from collections import deque
 from navigation import Location, NavigationTable
 import numpy as np
 
+from strategy import BetterAgeStrategy, WeightedAverageAgeStrategy, QualityStrategy, DecayingQualityStrategy
 from utils import norm, get_orientation_from_vector, rotation_matrix
 
 
@@ -42,20 +43,14 @@ class Agent:
         self.levi_weights = self.levi_pdf(self.max_levi_steps)
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
-        # self.food_location_vector = np.array([0, 0]).astype('float64')
-        # self.nest_location_vector = np.array([0, 0]).astype('float64')
-        # self.knows_food_location = False
-        # self.knows_nest_location = False
-        self.navigation_table = NavigationTable()
-        self.new_information = NavigationTable()
-        self.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)
-        self.navigation_table.set_location_vector(Location.NEST, self.environment.get_nest_location() - self.pos)
-        self.navigation_table.set_location_known(Location.FOOD, True)
-        self.navigation_table.set_location_known(Location.NEST, True)
-        # self.food_location_vector = self.environment.get_food_location() - self.pos
-        # self.nest_location_vector = self.environment.get_nest_location() - self.pos
-        # self.knows_food_location = True
-        # self.knows_nest_location = True
+        self.navigation_table = NavigationTable(quality=1-abs(self.noise_mu))
+        self.new_information = NavigationTable(quality=1-abs(self.noise_mu))
+
+        # self.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)
+        # self.navigation_table.set_location_vector(Location.NEST, self.environment.get_nest_location() - self.pos)
+        # self.navigation_table.set_location_known(Location.FOOD, True)
+        # self.navigation_table.set_location_known(Location.NEST, True)
+
         self.carries_food = False
 
     def __str__(self):
@@ -66,6 +61,7 @@ class Agent:
 
     def step(self):
         self.navigation_table = copy.deepcopy(self.new_information)
+        self.navigation_table.decay_qualities()
         self.move()
         self.update_trace()
         self.update_goal_vectors()
@@ -74,15 +70,18 @@ class Agent:
 
     def communicate(self, neighbors):
         self.new_information = copy.deepcopy(self.navigation_table)
+        # strategy = BetterAgeStrategy()
+        # strategy = WeightedAverageAgeStrategy()
+        # strategy = QualityStrategy(1-abs(self.noise_mu))
+        strategy = DecayingQualityStrategy(1-abs(self.noise_mu))
         for neighbor in neighbors:
             for location in Location:
-                neighbor_location_age = neighbor.get_nav_location_age(location)
-                if neighbor.knows_location(location) and neighbor_location_age < self.new_information.get_age(location):
-                    self.new_information.replace_location_information(location,
-                                                                      neighbor.get_location_vector(location) + (neighbor.pos - self.pos),
-                                                                      neighbor_location_age,
-                                                                      True)
+                if strategy.should_combine(self.new_information.get_target(location), neighbor.get_nav_target(location)):
+                    new_target = strategy.combine(self.new_information.get_target(location), neighbor.get_nav_target(location), neighbor.pos - self.pos)
+                    self.new_information.replace_target(location, new_target)
 
+    def get_nav_target(self, location):
+        return self.navigation_table.get_target(location)
 
     def get_nav_location_age(self, location):
         return self.navigation_table.get_age(location)
@@ -100,10 +99,10 @@ class Agent:
     def is_stationary(self):
         trace_length = len(self.trace) // 2
         tolerance = 3
-        if trace_length < 2 * tolerance:  # If robot hasn't done 2*tolerance steps yet, consider it is moving
+        if trace_length < 4 * tolerance:  # If robot hasn't done 2*tolerance steps yet, consider it is moving
             return False
-        trace_x = [self.trace[2*i] for i in range(trace_length)]
-        trace_y = [self.trace[2*i+1] for i in range(trace_length)]
+        trace_x = [self.trace[2*i] for i in range(min(trace_length, 4 * tolerance))]
+        trace_y = [self.trace[2*i+1] for i in range(min(trace_length, 4 * tolerance))]
         max_x_gap = max(trace_x) - min(trace_x)
         max_y_gap = max(trace_y) - min(trace_y)
 
@@ -116,15 +115,17 @@ class Agent:
             self.set_food_vector()
             self.navigation_table.set_location_known(Location.FOOD, True)
             self.navigation_table.set_location_age(Location.FOOD, 0)
+            self.navigation_table.reset_quality(Location.FOOD, 1-abs(self.noise_mu))
             # self.knows_food_location = True
             self.carries_food = True
         if sensing_nest:
             self.set_nest_vector()
             self.navigation_table.set_location_known(Location.NEST, True)
             self.navigation_table.set_location_age(Location.NEST, 0)
-            # self.knows_nest_location = True
+            self.navigation_table.reset_quality(Location.NEST, 1-abs(self.noise_mu))
             if self.carries_food:
                 self.reward += 1
+                # print(f"bot {self.id} rewarded, total reward={self.reward}, qualities={self.navigation_table.targets[Location.FOOD].quality, self.navigation_table.targets[Location.FOOD].decaying_quality }")
                 self.carries_food = False
 
         if self.state == State.EXPLORING:
@@ -168,11 +169,9 @@ class Agent:
 
     def set_food_vector(self):
         self.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)
-        # self.food_location_vector = self.environment.get_food_location() - self.pos
 
     def set_nest_vector(self):
         self.navigation_table.set_location_vector(Location.NEST, self.environment.get_nest_location() - self.pos)
-        # self.nest_location_vector = self.environment.get_nest_location() - self.pos
 
     def move(self):
         # Robot's will : calculates where it wants to end up and check if there are no border walls
@@ -204,9 +203,6 @@ class Agent:
 
     def rotate_vectors(self, angle):
         self.navigation_table.rotate_from_angle(angle)
-        # rot_mat = rotation_matrix(angle)
-        # self.food_location_vector = rot_mat.dot(self.food_location_vector)
-        # self.nest_location_vector = rot_mat.dot(self.nest_location_vector)
 
     def clamp_to_map(self, new_position):
         if new_position[0] < self.radius:
@@ -246,8 +242,8 @@ class Agent:
                                     self.pos[1] + self.radius,
                                     fill=self.colors[self.state])
         self.draw_comm_radius(canvas)
-        # self.draw_goal_vector(canvas)
-        self.draw_trace(canvas)
+        self.draw_goal_vector(canvas)
+        # self.draw_trace(canvas)
 
     def draw_trace(self, canvas):
         tail = canvas.create_line(*self.trace)
@@ -260,7 +256,6 @@ class Agent:
                                     outline="gray")
 
     def draw_goal_vector(self, canvas):
-        food_location_vector = self.navigation_table.get_location_vector(Location.FOOD)
         arrow = canvas.create_line(self.pos[0],
                                    self.pos[1],
                                    self.pos[0] + self.navigation_table.get_location_vector(Location.FOOD)[0],
@@ -290,7 +285,6 @@ class Agent:
 
     def sample_noise(self, noise_mu, noise_musd, noise_sd):
         mu = gauss(noise_mu, noise_musd)
-        print(f"{self}, noise sampled: {mu, noise_sd}")
         return mu, noise_sd
 
     def set_neighbors(self, neighbors):

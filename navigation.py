@@ -9,10 +9,12 @@ class Location(Enum):
 
 
 class Target:
-    def __init__(self, location):
+    def __init__(self, location, quality):
         self.location = location
         self.relative_distance = np.array([0, 0]).astype('float64')
         self.age = 0
+        self.quality = quality
+        self.decaying_quality = quality
         self.known = False
 
     def is_known(self):
@@ -35,21 +37,15 @@ class Target:
         rot_mat = rotation_matrix(angle)
         self.relative_distance = rot_mat.dot(self.relative_distance)
 
+    def decay_quality(self, decay_rate):
+        self.decaying_quality -= decay_rate
+
 
 class NavigationTable:
-    def __init__(self):
+    def __init__(self, quality):
         self.targets = dict()
         for location in Location:
-            self.targets[location] = Target(location)
-
-    def replace_location_information(self, location, relative_distance, age, known):
-        self.targets[location].location = location
-        self.targets[location].set_distance(relative_distance)
-        self.targets[location].age = age
-        self.targets[location].set_known(known)
-
-    def get_location_information(self, location):
-        self.targets[location].get_distance(), self.targets[location].age, self.targets[location].is_known()
+            self.targets[location] = Target(location, quality)
 
     def is_location_known(self, location):
         return self.targets[location].is_known()
@@ -76,3 +72,18 @@ class NavigationTable:
 
     def set_location_age(self, location, age):
         self.targets[location].age = age
+
+    def get_target(self, location):
+        return self.targets[location]
+
+    def replace_target(self, location, new_target):
+        self.targets[location] = new_target
+
+    def reset_quality(self, location, quality):
+        self.targets[location].quality = quality
+        self.targets[location].decaying_quality = quality
+
+    def decay_qualities(self):
+        for location in self.targets:
+            self.targets[location].decay_quality(0.001)
+

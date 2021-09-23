@@ -29,6 +29,7 @@ class Environment:
         self.noise_musd = noise_musd
         self.noise_sd = noise_sd
         self.create_robots()
+        self.best_bot_id = self.get_best_bot_id()
 
     def step(self):
         # compute neighbors
@@ -95,6 +96,7 @@ class Environment:
         self.draw_zones(canvas)
         for robot in self.population:
             robot.draw(canvas)
+        self.draw_best_bot(canvas)
 
     def draw_zones(self, canvas):
         food_circle = canvas.create_oval(self.food[0] - self.food[2],
@@ -107,3 +109,17 @@ class Environment:
                                          self.nest[0] + self.nest[2],
                                          self.nest[1] + self.nest[2],
                                          fill="orange")
+
+    def get_best_bot_id(self):
+        best_bot_id = 0
+        for bot in self.population:
+            if 1-abs(bot.noise_mu) > 1-abs(self.population[best_bot_id].noise_mu):
+                best_bot_id = bot.id
+        return best_bot_id
+
+    def draw_best_bot(self, canvas):
+        circle = canvas.create_oval(self.population[self.best_bot_id].pos[0] - 4,
+                                    self.population[self.best_bot_id].pos[1] - 4,
+                                    self.population[self.best_bot_id].pos[0] + 4,
+                                    self.population[self.best_bot_id].pos[1] + 4,
+                                    fill="red")

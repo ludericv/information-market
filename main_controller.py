@@ -1,3 +1,5 @@
+import time
+
 from environment import Environment
 from view_controller import ViewController
 
@@ -55,6 +57,15 @@ class MainController:
             self.environment.step()
 
     def start_simulation(self):
+        now = time.time()
         for step_nb in range(self.parameters["SIMULATION_STEPS"]):
             self.step()
-            print(self.environment.population[0])
+        # print(f"Time taken for {self.parameters['SIMULATION_STEPS']} steps: {time.time()-now}")
+
+    def get_reward_stats(self):
+        res = ""
+        for bot in self.environment.population:
+            res += str(bot.reward) + ","
+        res = res[:-1] # remove last comma
+        res += "\n"
+        return res
