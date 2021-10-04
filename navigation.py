@@ -14,7 +14,7 @@ class Target:
         self.relative_distance = np.array([0, 0]).astype('float64')
         self.age = 0
         self.quality = quality
-        self.decaying_quality = quality
+        self.decaying_quality = 1
         self.known = False
 
     def is_known(self):
@@ -38,7 +38,8 @@ class Target:
         self.relative_distance = rot_mat.dot(self.relative_distance)
 
     def decay_quality(self, decay_rate):
-        self.decaying_quality -= decay_rate
+        res = self.decaying_quality - decay_rate
+        self.decaying_quality = res if res > 0 else 0
 
 
 class NavigationTable:
@@ -81,9 +82,10 @@ class NavigationTable:
 
     def reset_quality(self, location, quality):
         self.targets[location].quality = quality
-        self.targets[location].decaying_quality = quality
+        self.targets[location].decaying_quality = 1
 
-    def decay_qualities(self):
+    def decay_qualities(self, decay_rate):
         for location in self.targets:
-            self.targets[location].decay_quality(0.001)
+            self.targets[location].decay_quality(decay_rate)
+
 

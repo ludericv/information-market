@@ -51,33 +51,41 @@ class Agent:
         # self.navigation_table.set_location_known(Location.FOOD, True)
         # self.navigation_table.set_location_known(Location.NEST, True)
 
+        # self.strategy = BetterAgeStrategy()
+        # self.strategy = WeightedAverageAgeStrategy()
+        # self.strategy = QualityStrategy(1-abs(self.noise_mu))
+        self.strategy = DecayingQualityStrategy()
+
         self.carries_food = False
 
     def __str__(self):
-        return f"Bip boop, I am bot {self.id}, located at ({self.pos[0]}, {self.pos[1]})"
+        return f"ID: {self.id}\n" \
+               f"state: {self.state}\n" \
+               f"expected food at: ({round(self.pos[0]+self.navigation_table.get_location_vector(Location.FOOD)[0])}, {round(self.pos[1]+self.navigation_table.get_location_vector(Location.FOOD)[1])})\n" \
+               f"expected nest at: ({round(self.pos[0]+self.navigation_table.get_location_vector(Location.NEST)[0])}, {round(self.pos[1]+self.navigation_table.get_location_vector(Location.NEST)[1])})\n" \
+               f"info quality: \n" \
+               f"   -food={round(self.navigation_table.get_target(Location.FOOD).decaying_quality, 3)}\n" \
+               f"   -nest={round(self.navigation_table.get_target(Location.NEST).decaying_quality, 3)}\n" \
+               f"reward: {self.reward}$\n"
 
     def __repr__(self):
         return f"bot {self.id}"
 
     def step(self):
         self.navigation_table = copy.deepcopy(self.new_information)
-        self.navigation_table.decay_qualities()
-        self.move()
-        self.update_trace()
-        self.update_goal_vectors()
         self.update_behavior()
         self.update_orientation_based_on_state()
+        self.move()
+        self.update_trace()
+        self.update_nav_table()
 
     def communicate(self, neighbors):
         self.new_information = copy.deepcopy(self.navigation_table)
-        # strategy = BetterAgeStrategy()
-        # strategy = WeightedAverageAgeStrategy()
-        # strategy = QualityStrategy(1-abs(self.noise_mu))
-        strategy = DecayingQualityStrategy(1-abs(self.noise_mu))
+
         for neighbor in neighbors:
             for location in Location:
-                if strategy.should_combine(self.new_information.get_target(location), neighbor.get_nav_target(location)):
-                    new_target = strategy.combine(self.new_information.get_target(location), neighbor.get_nav_target(location), neighbor.pos - self.pos)
+                if self.strategy.should_combine(self.new_information.get_target(location), neighbor.get_nav_target(location)):
+                    new_target = self.strategy.combine(self.new_information.get_target(location), neighbor.get_nav_target(location), neighbor.pos - self.pos)
                     self.new_information.replace_target(location, new_target)
 
     def get_nav_target(self, location):
@@ -116,7 +124,6 @@ class Agent:
             self.navigation_table.set_location_known(Location.FOOD, True)
             self.navigation_table.set_location_age(Location.FOOD, 0)
             self.navigation_table.reset_quality(Location.FOOD, 1-abs(self.noise_mu))
-            # self.knows_food_location = True
             self.carries_food = True
         if sensing_nest:
             self.set_nest_vector()
@@ -125,7 +132,6 @@ class Agent:
             self.navigation_table.reset_quality(Location.NEST, 1-abs(self.noise_mu))
             if self.carries_food:
                 self.reward += 1
-                # print(f"bot {self.id} rewarded, total reward={self.reward}, qualities={self.navigation_table.targets[Location.FOOD].quality, self.navigation_table.targets[Location.FOOD].decaying_quality }")
                 self.carries_food = False
 
         if self.state == State.EXPLORING:
@@ -164,8 +170,9 @@ class Agent:
             turn_angle = get_orientation_from_vector(self.navigation_table.get_location_vector(Location.NEST)) - self.orientation
         self.turn(turn_angle)
 
-    def update_goal_vectors(self):
+    def update_nav_table(self):
         self.navigation_table.update_from_movement(self.displacement)
+        self.navigation_table.decay_qualities(0.01*abs(self.noise_mu))
 
     def set_food_vector(self):
         self.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)

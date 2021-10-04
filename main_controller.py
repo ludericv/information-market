@@ -69,3 +69,6 @@ class MainController:
         res = res[:-1] # remove last comma
         res += "\n"
         return res
+
+    def get_robot_at(self, x, y):
+        return self.environment.get_robot_at(x, y)

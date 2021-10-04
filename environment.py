@@ -123,3 +123,12 @@ class Environment:
                                     self.population[self.best_bot_id].pos[0] + 4,
                                     self.population[self.best_bot_id].pos[1] + 4,
                                     fill="red")
+
+    def get_robot_at(self, x, y):
+        selected = None
+        for bot in self.population:
+            if norm(bot.pos - np.array([x, y]).astype('float64')) < self.robot_radius:
+                selected = bot
+                break
+
+        return selected
