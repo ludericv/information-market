@@ -7,7 +7,7 @@ from collections import deque
 from navigation import Location, NavigationTable
 import numpy as np
 
-from strategy import BetterAgeStrategy, WeightedAverageAgeStrategy, QualityStrategy, DecayingQualityStrategy
+from strategy import *
 from utils import norm, get_orientation_from_vector, rotation_matrix
 
 
@@ -54,7 +54,8 @@ class Agent:
         # self.strategy = BetterAgeStrategy()
         # self.strategy = WeightedAverageAgeStrategy()
         # self.strategy = QualityStrategy(1-abs(self.noise_mu))
-        self.strategy = DecayingQualityStrategy()
+        # self.strategy = DecayingQualityStrategy()
+        self.strategy = WeightedDecayingQualityStrategy()
 
         self.carries_food = False
 
@@ -66,6 +67,11 @@ class Agent:
                f"info quality: \n" \
                f"   -food={round(self.navigation_table.get_target(Location.FOOD).decaying_quality, 3)}\n" \
                f"   -nest={round(self.navigation_table.get_target(Location.NEST).decaying_quality, 3)}\n" \
+               f"info age:\n" \
+               f"   -food={round(self.navigation_table.get_target(Location.FOOD).age, 3)}\n" \
+               f"   -nest={round(self.navigation_table.get_target(Location.NEST).age, 3)}\n" \
+               f"carries food: {self.carries_food}\n" \
+               f"drift: {round(self.noise_mu, 5)}\n" \
                f"reward: {self.reward}$\n"
 
     def __repr__(self):
@@ -172,7 +178,7 @@ class Agent:
 
     def update_nav_table(self):
         self.navigation_table.update_from_movement(self.displacement)
-        self.navigation_table.decay_qualities(0.01*abs(self.noise_mu))
+        self.navigation_table.decay_qualities(1-0.01*abs(self.noise_mu))
 
     def set_food_vector(self):
         self.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)

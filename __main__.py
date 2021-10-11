@@ -7,19 +7,22 @@ def main():
 
 
 def main_processes():
-    NB_RUNS = 20
+    NB_RUNS = 60
 
     process_table = [Process(target=run) for i in range(NB_RUNS)]
     for batch in range(NB_RUNS//4):
-        for batch_process in range(batch):
+        for batch_process in range(4):
             process_table[batch_process + batch*4].start()
-        for batch_process in range(batch):
+            print(f"launched process {batch_process + batch*4}")
+        for batch_process in range(4):
             process_table[batch_process + batch*4].join()
+            print(f"joined process {batch_process + batch*4}")
+        print(f"end of batch {batch}")
 
 
 
 def run():
-    with open("results_weightedaverage.txt", "a") as file:
+    with open("results_weighteddecaying_expnoise.txt", "a") as file:
         controller = MainController(config_file="config.txt")
         file.write(controller.get_reward_stats())
 
