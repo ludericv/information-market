@@ -300,5 +300,3 @@ class Agent:
         mu = gauss(noise_mu, noise_musd)
         return mu, noise_sd
 
-    def set_neighbors(self, neighbors):
-        self.neighbors = neighbors
