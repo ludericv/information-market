@@ -1,22 +1,13 @@
-import copy
 from random import random, choices, gauss
 from math import sin, cos, radians, pi
 from tkinter import LAST
-from enum import Enum
 from collections import deque
 
-from behavior import HonestBehavior
+from behavior import HonestBehavior, State
 from navigation import Location, NavigationTable
 import numpy as np
 
-from strategy import *
-from utils import norm, get_orientation_from_vector, rotation_matrix
-
-
-class State(Enum):
-    EXPLORING = 1
-    SEEKING_FOOD = 2
-    SEEKING_NEST = 3
+from utils import norm, get_orientation_from_vector, rotation_matrix, rotate
 
 
 class Agent:
@@ -38,7 +29,6 @@ class Agent:
         self.displacement = np.array([0, 0]).astype('float64')
         self.noise_mu, self.noise_sd = self.sample_noise(noise_mu, noise_musd, noise_sd)
         self.environment = environment
-        self.state = State.SEEKING_FOOD
         self.reward = 0
         self.crw_weights = self.crw_pdf(self.thetas)
         self.levi_weights = self.levi_pdf(self.max_levi_steps)
@@ -46,34 +36,19 @@ class Agent:
         self.trace = deque(self.pos, maxlen=100)
 
         self.behavior = HonestBehavior(self)
-
-        self.navigation_table = NavigationTable(quality=1-abs(self.noise_mu))
-        self.new_information = NavigationTable(quality=1-abs(self.noise_mu))
-
-        # self.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)
-        # self.navigation_table.set_location_vector(Location.NEST, self.environment.get_nest_location() - self.pos)
-        # self.navigation_table.set_location_known(Location.FOOD, True)
-        # self.navigation_table.set_location_known(Location.NEST, True)
-
-        # self.strategy = BetterAgeStrategy()
-        # self.strategy = WeightedAverageAgeStrategy()
-        # self.strategy = QualityStrategy(1-abs(self.noise_mu))
-        # self.strategy = DecayingQualityStrategy()
-        # self.strategy = WeightedDecayingQualityStrategy()
-
         self.carries_food = False
 
     def __str__(self):
         return f"ID: {self.id}\n" \
-               f"state: {self.state}\n" \
-               f"expected food at: ({round(self.pos[0]+self.navigation_table.get_location_vector(Location.FOOD)[0])}, {round(self.pos[1]+self.navigation_table.get_location_vector(Location.FOOD)[1])})\n" \
-               f"expected nest at: ({round(self.pos[0]+self.navigation_table.get_location_vector(Location.NEST)[0])}, {round(self.pos[1]+self.navigation_table.get_location_vector(Location.NEST)[1])})\n" \
+               f"state: {self.behavior.state}\n" \
+               f"expected food at: ({round(self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[0])}, {round(self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[1])})\n" \
+               f"expected nest at: ({round(self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.NEST)[0])}, {round(self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.NEST)[1])})\n" \
                f"info quality: \n" \
-               f"   -food={round(self.navigation_table.get_target(Location.FOOD).decaying_quality, 3)}\n" \
-               f"   -nest={round(self.navigation_table.get_target(Location.NEST).decaying_quality, 3)}\n" \
+               f"   -food={round(self.behavior.navigation_table.get_target(Location.FOOD).decaying_quality, 3)}\n" \
+               f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).decaying_quality, 3)}\n" \
                f"info age:\n" \
-               f"   -food={round(self.navigation_table.get_target(Location.FOOD).age, 3)}\n" \
-               f"   -nest={round(self.navigation_table.get_target(Location.NEST).age, 3)}\n" \
+               f"   -food={round(self.behavior.navigation_table.get_target(Location.FOOD).age, 3)}\n" \
+               f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).age, 3)}\n" \
                f"carries food: {self.carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
                f"reward: {self.reward}$\n"
@@ -82,10 +57,11 @@ class Agent:
         return f"bot {self.id}"
 
     def step(self):
-        self.behavior.step()
+        sensors = self.environment.get_sensors(self)
+        self.behavior.step(sensors)
         self.move()
         self.update_trace()
-        self.update_nav_table()
+        self.check_food(sensors)
 
     def communicate(self, neighbors):
         pass
@@ -118,47 +94,37 @@ class Agent:
         tolerance = 3
         if trace_length < 4 * tolerance:  # If robot hasn't done 2*tolerance steps yet, consider it is moving
             return False
-        trace_x = [self.trace[2*i] for i in range(min(trace_length, 4 * tolerance))]
-        trace_y = [self.trace[2*i+1] for i in range(min(trace_length, 4 * tolerance))]
+        trace_x = [self.trace[2 * i] for i in range(min(trace_length, 4 * tolerance))]
+        trace_y = [self.trace[2 * i + 1] for i in range(min(trace_length, 4 * tolerance))]
         max_x_gap = max(trace_x) - min(trace_x)
         max_y_gap = max(trace_y) - min(trace_y)
 
         return max_x_gap < tolerance * self.speed and max_y_gap < tolerance * self.speed
 
-    def update_nav_table(self):
-        self.navigation_table.update_from_movement(self.displacement)
-        self.navigation_table.decay_qualities(1-0.01*abs(self.noise_mu))
-
     def set_food_vector(self):
-        self.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)
+        self.behavior.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)
 
     def set_nest_vector(self):
-        self.navigation_table.set_location_vector(Location.NEST, self.environment.get_nest_location() - self.pos)
+        self.behavior.navigation_table.set_location_vector(Location.NEST, self.environment.get_nest_location() - self.pos)
 
     def move(self):
         # Robot's will : calculates where it wants to end up and check if there are no border walls
         self.displacement = self.speed * np.array([cos(radians(self.orientation)), sin(radians(self.orientation))])
-
+        wanted_movement = rotate(self.behavior.get_dr(), self.orientation)
+        noise_angle = gauss(self.noise_mu, self.noise_sd)
+        noisy_movement = rotate(wanted_movement, noise_angle)
+        self.orientation = get_orientation_from_vector(noisy_movement)
 
 
         # Real movement, subject to noise, clamped to borders
-        noise_amt = gauss(self.noise_mu, self.noise_sd)
-        n_hor = noise_amt * self.speed
-        n_vert = 0
-
-        noise_rel = np.array([n_vert, n_hor])  # noise vector in robot's relative coordinates
-        noise = rotation_matrix(self.orientation).dot(noise_rel)  # noise vector in absolute (x, y) coordinates
-        real_displacement = (self.displacement + noise) * (self.speed / norm(self.displacement + noise))
-        self.pos = self.clamp_to_map(self.pos + real_displacement)
-
-    def turn(self, angle):
-        noise_angle = gauss(self.noise_mu, self.noise_sd)
-        # noise_angle = 2 * (random() - 0.5)
-        self.rotate_vectors(noise_angle)
-        self.orientation = (self.orientation + angle) % 360
-
-    def rotate_vectors(self, angle):
-        self.navigation_table.rotate_from_angle(angle)
+        # noise_amt = gauss(self.noise_mu, self.noise_sd)
+        # n_hor = noise_amt * self.speed
+        # n_vert = 0
+        #
+        # noise_rel = np.array([n_vert, n_hor])  # noise vector in robot's relative coordinates
+        # noise = rotation_matrix(self.orientation).dot(noise_rel)  # noise vector in absolute (x, y) coordinates
+        # real_displacement = (self.displacement + noise) * (self.speed / norm(self.displacement + noise))
+        self.pos = self.clamp_to_map(self.pos + noisy_movement)
 
     def clamp_to_map(self, new_position):
         if new_position[0] < self.radius:
@@ -183,20 +149,12 @@ class Agent:
         self.update_levi_counter()
         return angle
 
-    def flip_horizontally(self):
-        self.orientation = (180 - self.orientation) % 360
-        self.displacement[0] = -self.displacement[0]
-
-    def flip_vertically(self):
-        self.orientation = (-self.orientation) % 360
-        self.displacement[1] = -self.displacement[1]
-
     def draw(self, canvas):
         circle = canvas.create_oval(self.pos[0] - self.radius,
                                     self.pos[1] - self.radius,
                                     self.pos[0] + self.radius,
                                     self.pos[1] + self.radius,
-                                    fill=self.colors[self.state])
+                                    fill=self.colors[self.behavior.state])
         self.draw_comm_radius(canvas)
         self.draw_goal_vector(canvas)
         # self.draw_trace(canvas)
@@ -214,13 +172,13 @@ class Agent:
     def draw_goal_vector(self, canvas):
         arrow = canvas.create_line(self.pos[0],
                                    self.pos[1],
-                                   self.pos[0] + self.navigation_table.get_location_vector(Location.FOOD)[0],
-                                   self.pos[1] + self.navigation_table.get_location_vector(Location.FOOD)[1],
+                                   self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[0],
+                                   self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[1],
                                    arrow=LAST)
         arrow = canvas.create_line(self.pos[0],
                                    self.pos[1],
-                                   self.pos[0] + self.navigation_table.get_location_vector(Location.NEST)[0],
-                                   self.pos[1] + self.navigation_table.get_location_vector(Location.NEST)[1],
+                                   self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.NEST)[0],
+                                   self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.NEST)[1],
                                    arrow=LAST)
 
     def crw_pdf(self, thetas):
@@ -243,3 +201,9 @@ class Agent:
         mu = gauss(noise_mu, noise_musd)
         return mu, noise_sd
 
+    def check_food(self, sensors):
+        if self.carries_food and sensors["NEST"]:
+            self.carries_food = False
+            self.reward += 1
+        if sensors["FOOD"]:
+            self.carries_food = True

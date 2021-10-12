@@ -1,14 +1,20 @@
 import copy
 from abc import ABC, abstractmethod
+from enum import Enum
 from math import cos, radians, sin
 from random import choices
 
 import numpy as np
 
-from agent import State
 from navigation import Location, NavigationTable
 from strategy import BetterAgeStrategy
 from utils import get_orientation_from_vector, norm
+
+
+class State(Enum):
+    EXPLORING = 1
+    SEEKING_FOOD = 2
+    SEEKING_NEST = 3
 
 
 class Behavior(ABC):
@@ -16,7 +22,6 @@ class Behavior(ABC):
     def __init__(self, body):
         self.body = body
         self.dr = np.array([0, 0]).astype('float64')
-        self.state = State.SEEKING_FOOD
         self.navigation_table = NavigationTable(quality=1)
 
     @abstractmethod
@@ -35,6 +40,7 @@ class HonestBehavior(Behavior):
 
     def __init__(self, body):
         super().__init__(body)
+        self.state = State.EXPLORING
         self.new_information = copy.deepcopy(self.navigation_table)
         self.strategy = BetterAgeStrategy()
 
@@ -58,14 +64,12 @@ class HonestBehavior(Behavior):
         self.check_movement_with_sensors(sensors)
 
     def update_behavior(self, sensors):
-        sensing_food = sensors["FOOD"]
-        sensing_nest = sensors["NEST"]
-        if sensing_food:
+        if sensors["FOOD"]:
             self.body.set_food_vector()
             self.navigation_table.set_location_known(Location.FOOD, True)
             self.navigation_table.set_location_age(Location.FOOD, 0)
             self.navigation_table.reset_quality(Location.FOOD, 1)
-        if sensing_nest:
+        if sensors["NEST"]:
             self.body.set_nest_vector()
             self.navigation_table.set_location_known(Location.NEST, True)
             self.navigation_table.set_location_age(Location.NEST, 0)
@@ -77,16 +81,22 @@ class HonestBehavior(Behavior):
             if self.navigation_table.is_location_known(Location.NEST) and self.body.carries_food:
                 self.state = State.SEEKING_NEST
 
-        elif self.state == State.SEEKING_FOOD and sensing_food:
-            if self.navigation_table.is_location_known(Location.NEST):
-                self.state = State.SEEKING_NEST
-            else:
+        elif self.state == State.SEEKING_FOOD:
+            if sensors["FOOD"]:
+                if self.navigation_table.is_location_known(Location.NEST):
+                    self.state = State.SEEKING_NEST
+                else:
+                    self.state = State.EXPLORING
+            elif norm(self.navigation_table.get_location_vector(Location.FOOD)) < self.body.speed:
                 self.state = State.EXPLORING
 
-        elif self.state == State.SEEKING_NEST and sensing_nest:
-            if self.navigation_table.is_location_known(Location.FOOD):
-                self.state = State.SEEKING_FOOD
-            else:
+        elif self.state == State.SEEKING_NEST:
+            if sensors["NEST"]:
+                if self.navigation_table.is_location_known(Location.FOOD):
+                    self.state = State.SEEKING_FOOD
+                else:
+                    self.state = State.EXPLORING
+            elif norm(self.navigation_table.get_location_vector(Location.NEST)) < self.body.speed:
                 self.state = State.EXPLORING
 
         if sensors["FRONT"]:
@@ -98,19 +108,24 @@ class HonestBehavior(Behavior):
                 self.state = State.EXPLORING
 
     def update_movement_based_on_state(self):
-        if self.state == State.EXPLORING:
+        if self.state == State.SEEKING_FOOD:
+            self.dr = self.body.speed * self.navigation_table.get_location_vector(Location.FOOD)
+            food_norm = norm(self.navigation_table.get_location_vector(Location.FOOD))
+            if food_norm > self.body.speed:
+                self.dr = self.dr/food_norm
+
+        elif self.state == State.SEEKING_NEST:
+            self.dr = self.body.speed * self.navigation_table.get_location_vector(Location.NEST)
+            nest_norm = norm(self.navigation_table.get_location_vector(Location.NEST))
+            if nest_norm > self.body.speed:
+                self.dr = self.dr/nest_norm
+
+        else:
             turn_angle = self.body.get_levi_turn_angle()
             self.dr = self.body.speed * np.array([cos(radians(turn_angle)), sin(radians(turn_angle))])
-        elif self.state == State.SEEKING_FOOD:
-            self.dr = self.body.speed * self.navigation_table.get_location_vector(Location.FOOD) / norm(self.navigation_table.get_location_vector(Location.FOOD))
-        elif self.state == State.SEEKING_NEST:
-            self.dr = self.body.speed * self.navigation_table.get_location_vector(Location.NEST) / norm(self.navigation_table.get_location_vector(Location.NEST))
 
     def check_movement_with_sensors(self, sensors):
         if (sensors["FRONT"] and self.dr[1] > 0) or (sensors["BACK"] and self.dr[1] < 0):
             self.dr[1] = -self.dr[1]
         if (sensors["RIGHT"] and self.dr[0] > 0) or (sensors["LEFT"] and self.dr[0] < 0):
             self.dr[0] = -self.dr[0]
-
-
-

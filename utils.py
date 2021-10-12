@@ -16,3 +16,9 @@ def rotation_matrix(angle):
     theta = radians(angle)
     return np.array(((np.cos(theta), -np.sin(theta)),
                      (np.sin(theta), np.cos(theta))))
+
+
+def rotate(vector, angle):
+    rot_mat = rotation_matrix(angle)
+    rotated_vector = rot_mat.dot(vector)
+    return rotated_vector
