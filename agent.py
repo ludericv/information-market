@@ -4,6 +4,8 @@ from math import sin, cos, radians, pi
 from tkinter import LAST
 from enum import Enum
 from collections import deque
+
+from behavior import HonestBehavior
 from navigation import Location, NavigationTable
 import numpy as np
 
@@ -36,13 +38,15 @@ class Agent:
         self.displacement = np.array([0, 0]).astype('float64')
         self.noise_mu, self.noise_sd = self.sample_noise(noise_mu, noise_musd, noise_sd)
         self.environment = environment
-        self.neighbors = []
         self.state = State.SEEKING_FOOD
         self.reward = 0
         self.crw_weights = self.crw_pdf(self.thetas)
         self.levi_weights = self.levi_pdf(self.max_levi_steps)
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
+
+        self.behavior = HonestBehavior(self)
+
         self.navigation_table = NavigationTable(quality=1-abs(self.noise_mu))
         self.new_information = NavigationTable(quality=1-abs(self.noise_mu))
 
@@ -55,7 +59,7 @@ class Agent:
         # self.strategy = WeightedAverageAgeStrategy()
         # self.strategy = QualityStrategy(1-abs(self.noise_mu))
         # self.strategy = DecayingQualityStrategy()
-        self.strategy = WeightedDecayingQualityStrategy()
+        # self.strategy = WeightedDecayingQualityStrategy()
 
         self.carries_food = False
 
@@ -78,21 +82,20 @@ class Agent:
         return f"bot {self.id}"
 
     def step(self):
-        self.navigation_table = copy.deepcopy(self.new_information)
-        self.update_behavior()
-        self.update_orientation_based_on_state()
+        self.behavior.step()
         self.move()
         self.update_trace()
         self.update_nav_table()
 
     def communicate(self, neighbors):
-        self.new_information = copy.deepcopy(self.navigation_table)
-
-        for neighbor in neighbors:
-            for location in Location:
-                if self.strategy.should_combine(self.new_information.get_target(location), neighbor.get_nav_target(location)):
-                    new_target = self.strategy.combine(self.new_information.get_target(location), neighbor.get_nav_target(location), neighbor.pos - self.pos)
-                    self.new_information.replace_target(location, new_target)
+        pass
+        # self.new_information = copy.deepcopy(self.navigation_table)
+        #
+        # for neighbor in neighbors:
+        #     for location in Location:
+        #         if self.strategy.should_combine(self.new_information.get_target(location), neighbor.get_nav_target(location)):
+        #             new_target = self.strategy.combine(self.new_information.get_target(location), neighbor.get_nav_target(location), neighbor.pos - self.pos)
+        #             self.new_information.replace_target(location, new_target)
 
     def get_nav_target(self, location):
         return self.navigation_table.get_target(location)
@@ -122,60 +125,6 @@ class Agent:
 
         return max_x_gap < tolerance * self.speed and max_y_gap < tolerance * self.speed
 
-    def update_behavior(self):
-        sensing_food = self.environment.senses_food(self)
-        sensing_nest = self.environment.senses_nest(self)
-        if sensing_food:
-            self.set_food_vector()
-            self.navigation_table.set_location_known(Location.FOOD, True)
-            self.navigation_table.set_location_age(Location.FOOD, 0)
-            self.navigation_table.reset_quality(Location.FOOD, 1-abs(self.noise_mu))
-            self.carries_food = True
-        if sensing_nest:
-            self.set_nest_vector()
-            self.navigation_table.set_location_known(Location.NEST, True)
-            self.navigation_table.set_location_age(Location.NEST, 0)
-            self.navigation_table.reset_quality(Location.NEST, 1-abs(self.noise_mu))
-            if self.carries_food:
-                self.reward += 1
-                self.carries_food = False
-
-        if self.state == State.EXPLORING:
-            if self.navigation_table.is_location_known(Location.FOOD) and not self.carries_food:
-                self.state = State.SEEKING_FOOD
-            if self.navigation_table.is_location_known(Location.NEST) and self.carries_food:
-                self.state = State.SEEKING_NEST
-
-        elif self.state == State.SEEKING_FOOD and sensing_food:
-            if self.navigation_table.is_location_known(Location.NEST):
-                self.state = State.SEEKING_NEST
-            else:
-                self.state = State.EXPLORING
-
-        elif self.state == State.SEEKING_NEST and sensing_nest:
-            if self.navigation_table.is_location_known(Location.FOOD):
-                self.state = State.SEEKING_FOOD
-            else:
-                self.state = State.EXPLORING
-
-        if self.is_stationary():
-            if self.state == State.SEEKING_NEST:
-                self.navigation_table.set_location_known(Location.NEST, False)
-                self.state = State.EXPLORING
-            elif self.state == State.SEEKING_FOOD:
-                self.navigation_table.set_location_known(Location.FOOD, False)
-                self.state = State.EXPLORING
-
-    def update_orientation_based_on_state(self):
-        turn_angle = 0
-        if self.state == State.EXPLORING:
-            turn_angle = self.get_levi_turn_angle()
-        elif self.state == State.SEEKING_FOOD:
-            turn_angle = get_orientation_from_vector(self.navigation_table.get_location_vector(Location.FOOD)) - self.orientation
-        elif self.state == State.SEEKING_NEST:
-            turn_angle = get_orientation_from_vector(self.navigation_table.get_location_vector(Location.NEST)) - self.orientation
-        self.turn(turn_angle)
-
     def update_nav_table(self):
         self.navigation_table.update_from_movement(self.displacement)
         self.navigation_table.decay_qualities(1-0.01*abs(self.noise_mu))
@@ -189,14 +138,8 @@ class Agent:
     def move(self):
         # Robot's will : calculates where it wants to end up and check if there are no border walls
         self.displacement = self.speed * np.array([cos(radians(self.orientation)), sin(radians(self.orientation))])
-        collide_x, collide_y = self.environment.check_border_collision(self,
-                                                                       self.pos[0] + self.displacement[0],
-                                                                       self.pos[1] + self.displacement[1])
-        # If border in front, flip orientation along wall axis
-        if collide_x:
-            self.flip_horizontally()
-        if collide_y:
-            self.flip_vertically()
+
+
 
         # Real movement, subject to noise, clamped to borders
         noise_amt = gauss(self.noise_mu, self.noise_sd)

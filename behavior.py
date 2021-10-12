@@ -1,3 +1,4 @@
+import copy
 from abc import ABC, abstractmethod
 from math import cos, radians, sin
 from random import choices
@@ -6,6 +7,7 @@ import numpy as np
 
 from agent import State
 from navigation import Location, NavigationTable
+from strategy import BetterAgeStrategy
 from utils import get_orientation_from_vector, norm
 
 
@@ -33,11 +35,23 @@ class HonestBehavior(Behavior):
 
     def __init__(self, body):
         super().__init__(body)
+        self.new_information = copy.deepcopy(self.navigation_table)
+        self.strategy = BetterAgeStrategy()
 
     def communicate(self, neighbors):
         pass
+        # self.new_information = copy.deepcopy(self.navigation_table)
+        #
+        # for neighbor in neighbors:
+        #     for location in Location:
+        #         if self.strategy.should_combine(self.new_information.get_target(location),
+        #                                         neighbor.get_nav_target(location)):
+        #             new_target = self.strategy.combine(self.new_information.get_target(location),
+        #                                                neighbor.get_nav_target(location), neighbor.pos - self.body.pos)
+        #             self.new_information.replace_target(location, new_target)
 
     def step(self, sensors):
+        self.navigation_table = self.new_information
         self.dr[0], self.dr[1] = 0, 0
         self.update_behavior(sensors)
         self.update_movement_based_on_state()
@@ -95,7 +109,7 @@ class HonestBehavior(Behavior):
     def check_movement_with_sensors(self, sensors):
         if (sensors["FRONT"] and self.dr[1] > 0) or (sensors["BACK"] and self.dr[1] < 0):
             self.dr[1] = -self.dr[1]
-        if (sensors["RIGHT"] and self.dr[0] > 0) (sensors["LEFT"] and self.dr[0] < 0):
+        if (sensors["RIGHT"] and self.dr[0] > 0) or (sensors["LEFT"] and self.dr[0] < 0):
             self.dr[0] = -self.dr[0]
 
 
