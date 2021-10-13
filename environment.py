@@ -1,4 +1,4 @@
-from math import cos, sin
+from math import cos, sin, radians
 
 from agent import Agent
 from utils import norm
@@ -74,14 +74,14 @@ class Environment:
         speed = robot.speed
         sensors = {"FOOD": self.senses_food(robot),
                    "NEST": self.senses_nest(robot),
-                   "FRONT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(orientation),
-                                                            robot.pos[1] + speed * sin(orientation))),
-                   "RIGHT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos((orientation - 90) % 360),
-                                                            robot.pos[1] + speed * sin((orientation - 90) % 360))),
-                   "BACK": any(self.check_border_collision(robot, robot.pos[0] + speed * cos((orientation + 180) % 360),
-                                                           robot.pos[1] + speed * sin((orientation + 180) % 360))),
-                   "LEFT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos((orientation + 90) % 360),
-                                                           robot.pos[1] + speed * sin((orientation + 90) % 360))),
+                   "FRONT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians(orientation)),
+                                                            robot.pos[1] + speed * sin(radians(orientation)))),
+                   "RIGHT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians((orientation - 90) % 360)),
+                                                            robot.pos[1] + speed * sin(radians((orientation - 90) % 360)))),
+                   "BACK": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians((orientation + 180) % 360)),
+                                                           robot.pos[1] + speed * sin(radians((orientation + 180) % 360)))),
+                   "LEFT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians((orientation + 90) % 360)),
+                                                           robot.pos[1] + speed * sin(radians((orientation + 90) % 360)))),
                    }
         return sensors
 
@@ -114,7 +114,7 @@ class Environment:
         self.draw_zones(canvas)
         for robot in self.population:
             robot.draw(canvas)
-        self.draw_best_bot(canvas)
+        # self.draw_best_bot(canvas)
 
     def draw_zones(self, canvas):
         food_circle = canvas.create_oval(self.food[0] - self.food[2],

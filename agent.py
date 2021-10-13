@@ -1,3 +1,4 @@
+import math
 from random import random, choices, gauss
 from math import sin, cos, radians, pi
 from tkinter import LAST
@@ -41,8 +42,10 @@ class Agent:
     def __str__(self):
         return f"ID: {self.id}\n" \
                f"state: {self.behavior.state}\n" \
-               f"expected food at: ({round(self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[0])}, {round(self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[1])})\n" \
-               f"expected nest at: ({round(self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.NEST)[0])}, {round(self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.NEST)[1])})\n" \
+               f"expected food at: ({round(self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[0])}, {round(self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[1])}), \n" \
+               f"   known: {self.behavior.navigation_table.is_location_known(Location.FOOD)}\n" \
+               f"expected nest at: ({round(self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.NEST)[0])}, {round(self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.NEST)[1])}), \n" \
+               f"   known: {self.behavior.navigation_table.is_location_known(Location.NEST)}\n" \
                f"info quality: \n" \
                f"   -food={round(self.behavior.navigation_table.get_target(Location.FOOD).decaying_quality, 3)}\n" \
                f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).decaying_quality, 3)}\n" \
@@ -51,7 +54,8 @@ class Agent:
                f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).age, 3)}\n" \
                f"carries food: {self.carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
-               f"reward: {self.reward}$\n"
+               f"reward: {self.reward}$\n" \
+               f"dr: {self.behavior.get_dr()}\n"
 
     def __repr__(self):
         return f"bot {self.id}"
@@ -74,16 +78,16 @@ class Agent:
         #             self.new_information.replace_target(location, new_target)
 
     def get_nav_target(self, location):
-        return self.navigation_table.get_target(location)
+        return self.behavior.navigation_table.get_target(location)
 
     def get_nav_location_age(self, location):
-        return self.navigation_table.get_age(location)
+        return self.behavior.navigation_table.get_age(location)
 
     def get_location_vector(self, location):
-        return self.navigation_table.get_location_vector(location)
+        return self.behavior.navigation_table.get_location_vector(location)
 
     def knows_location(self, location):
-        return self.navigation_table.is_location_known(location)
+        return self.behavior.navigation_table.is_location_known(location)
 
     def update_trace(self):
         self.trace.appendleft(self.pos[1])
@@ -102,19 +106,19 @@ class Agent:
         return max_x_gap < tolerance * self.speed and max_y_gap < tolerance * self.speed
 
     def set_food_vector(self):
-        self.behavior.navigation_table.set_location_vector(Location.FOOD, self.environment.get_food_location() - self.pos)
+        self.behavior.navigation_table.set_location_vector(Location.FOOD,
+                                                           rotate(self.environment.get_food_location() - self.pos, -self.orientation))
 
     def set_nest_vector(self):
-        self.behavior.navigation_table.set_location_vector(Location.NEST, self.environment.get_nest_location() - self.pos)
+        self.behavior.navigation_table.set_location_vector(Location.NEST,
+                                                           rotate(self.environment.get_nest_location() - self.pos, -self.orientation))
 
     def move(self):
         # Robot's will : calculates where it wants to end up and check if there are no border walls
-        self.displacement = self.speed * np.array([cos(radians(self.orientation)), sin(radians(self.orientation))])
         wanted_movement = rotate(self.behavior.get_dr(), self.orientation)
         noise_angle = gauss(self.noise_mu, self.noise_sd)
         noisy_movement = rotate(wanted_movement, noise_angle)
         self.orientation = get_orientation_from_vector(noisy_movement)
-
 
         # Real movement, subject to noise, clamped to borders
         # noise_amt = gauss(self.noise_mu, self.noise_sd)
@@ -155,9 +159,10 @@ class Agent:
                                     self.pos[0] + self.radius,
                                     self.pos[1] + self.radius,
                                     fill=self.colors[self.behavior.state])
-        self.draw_comm_radius(canvas)
+        # self.draw_comm_radius(canvas)
         self.draw_goal_vector(canvas)
-        # self.draw_trace(canvas)
+        self.draw_orientation(canvas)
+        self.draw_trace(canvas)
 
     def draw_trace(self, canvas):
         tail = canvas.create_line(*self.trace)
@@ -172,14 +177,29 @@ class Agent:
     def draw_goal_vector(self, canvas):
         arrow = canvas.create_line(self.pos[0],
                                    self.pos[1],
-                                   self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[0],
-                                   self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[1],
+                                   self.pos[0] + rotate(
+                                       self.behavior.navigation_table.get_location_vector(Location.FOOD),
+                                       self.orientation)[0],
+                                   self.pos[1] + rotate(
+                                       self.behavior.navigation_table.get_location_vector(Location.FOOD),
+                                       self.orientation)[1],
                                    arrow=LAST)
         arrow = canvas.create_line(self.pos[0],
                                    self.pos[1],
-                                   self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.NEST)[0],
-                                   self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.NEST)[1],
+                                   self.pos[0] + rotate(
+                                       self.behavior.navigation_table.get_location_vector(Location.NEST),
+                                       self.orientation)[0],
+                                   self.pos[1] + rotate(
+                                       self.behavior.navigation_table.get_location_vector(Location.NEST),
+                                       self.orientation)[1],
                                    arrow=LAST)
+
+    def draw_orientation(self, canvas):
+        line = canvas.create_line(self.pos[0],
+                                  self.pos[1],
+                                  self.pos[0] + self.radius * cos(radians(self.orientation)),
+                                  self.pos[1] + self.radius * sin(radians(self.orientation)),
+                                  fill="white")
 
     def crw_pdf(self, thetas):
         res = []

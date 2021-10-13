@@ -45,16 +45,15 @@ class HonestBehavior(Behavior):
         self.strategy = BetterAgeStrategy()
 
     def communicate(self, neighbors):
-        pass
-        # self.new_information = copy.deepcopy(self.navigation_table)
-        #
-        # for neighbor in neighbors:
-        #     for location in Location:
-        #         if self.strategy.should_combine(self.new_information.get_target(location),
-        #                                         neighbor.get_nav_target(location)):
-        #             new_target = self.strategy.combine(self.new_information.get_target(location),
-        #                                                neighbor.get_nav_target(location), neighbor.pos - self.body.pos)
-        #             self.new_information.replace_target(location, new_target)
+        self.new_information = copy.deepcopy(self.navigation_table)
+
+        for neighbor in neighbors:
+            for location in Location:
+                if self.strategy.should_combine(self.new_information.get_target(location),
+                                                neighbor.get_nav_target(location)):
+                    new_target = self.strategy.combine(self.new_information.get_target(location),
+                                                       neighbor.get_nav_target(location), neighbor.pos - self.body.pos)
+                    self.new_information.replace_target(location, new_target)
 
     def step(self, sensors):
         self.navigation_table = self.new_information
@@ -62,6 +61,7 @@ class HonestBehavior(Behavior):
         self.update_behavior(sensors)
         self.update_movement_based_on_state()
         self.check_movement_with_sensors(sensors)
+        self.update_nav_table_based_on_dr()
 
     def update_behavior(self, sensors):
         if sensors["FOOD"]:
@@ -88,6 +88,7 @@ class HonestBehavior(Behavior):
                 else:
                     self.state = State.EXPLORING
             elif norm(self.navigation_table.get_location_vector(Location.FOOD)) < self.body.speed:
+                self.navigation_table.set_location_known(Location.FOOD, False)
                 self.state = State.EXPLORING
 
         elif self.state == State.SEEKING_NEST:
@@ -97,6 +98,7 @@ class HonestBehavior(Behavior):
                 else:
                     self.state = State.EXPLORING
             elif norm(self.navigation_table.get_location_vector(Location.NEST)) < self.body.speed:
+                self.navigation_table.set_location_known(Location.NEST, False)
                 self.state = State.EXPLORING
 
         if sensors["FRONT"]:
@@ -125,7 +127,11 @@ class HonestBehavior(Behavior):
             self.dr = self.body.speed * np.array([cos(radians(turn_angle)), sin(radians(turn_angle))])
 
     def check_movement_with_sensors(self, sensors):
-        if (sensors["FRONT"] and self.dr[1] > 0) or (sensors["BACK"] and self.dr[1] < 0):
-            self.dr[1] = -self.dr[1]
-        if (sensors["RIGHT"] and self.dr[0] > 0) or (sensors["LEFT"] and self.dr[0] < 0):
+        if (sensors["FRONT"] and self.dr[0] >= 0) or (sensors["BACK"] and self.dr[0] <= 0):
             self.dr[0] = -self.dr[0]
+        if (sensors["RIGHT"] and self.dr[1] <= 0) or (sensors["LEFT"] and self.dr[1] >= 0):
+            self.dr[1] = -self.dr[1]
+
+    def update_nav_table_based_on_dr(self):
+        self.navigation_table.update_from_movement(self.dr)
+        self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
