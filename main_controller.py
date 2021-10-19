@@ -1,4 +1,5 @@
 import time
+import random_walk
 
 from environment import Environment
 from view_controller import ViewController
@@ -9,6 +10,8 @@ class MainController:
     def __init__(self, config_file="config.txt"):
         self.parameters = dict()
         self.read_config(config_file)
+        random_walk.set_parameters(random_walk_factor=self.parameters["RDWALK_FACTOR"],
+                                   levi_factor=self.parameters["LEVI_FACTOR"])
         self.environment = Environment(width=self.parameters["WIDTH"],
                                        height=self.parameters["HEIGHT"],
                                        nb_robots=self.parameters["NB_ROBOTS"],

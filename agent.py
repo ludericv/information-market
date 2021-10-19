@@ -1,5 +1,6 @@
 import copy
 import math
+import random_walk as rw
 from random import random, choices, gauss
 from math import sin, cos, radians, pi
 from tkinter import LAST
@@ -39,10 +40,6 @@ class AgentAPI:
 
 
 class Agent:
-    thetas = np.arange(0, 360)
-    max_levi_steps = 1000
-    crw_weights = []
-    levi_weights = []
     colors = {State.EXPLORING: "blue", State.SEEKING_FOOD: "orange", State.SEEKING_NEST: "green"}
 
     def __init__(self, robot_id, x, y, speed, radius, rdwalk_factor, levi_factor,
@@ -51,15 +48,11 @@ class Agent:
         self.pos = np.array([x, y]).astype('float64')
         self._speed = speed
         self.radius = radius
-        self.rdwalk_factor = rdwalk_factor
-        self.levi_factor = levi_factor
         self.orientation = random() * 360  # 360 degree angle
-        self.displacement = np.array([0, 0]).astype('float64')
         self.noise_mu, self.noise_sd = self.sample_noise(noise_mu, noise_musd, noise_sd)
         self.environment = environment
         self.reward = 0
-        self.crw_weights = self.crw_pdf(self.thetas)
-        self.levi_weights = self.levi_pdf(self.max_levi_steps)
+
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
         self.behavior = HonestBehavior()
@@ -170,12 +163,12 @@ class Agent:
     def update_levi_counter(self):
         self.levi_counter -= 1
         if self.levi_counter <= 0:
-            self.levi_counter = choices(range(1, self.max_levi_steps + 1), self.levi_weights)[0]
+            self.levi_counter = choices(range(1, rw.get_max_levi_steps() + 1), rw.get_levi_weights())[0]
 
     def get_levi_turn_angle(self):
         angle = 0
         if self.levi_counter <= 1:
-            angle = choices(self.thetas, self.crw_weights)[0]
+            angle = choices(np.arange(0, 360), rw.get_crw_weights())[0]
         self.update_levi_counter()
         return angle
 
@@ -227,22 +220,6 @@ class Agent:
                                   self.pos[1] + self.radius * sin(radians(self.orientation)),
                                   fill="white")
 
-    def crw_pdf(self, thetas):
-        res = []
-        for t in thetas:
-            num = (1 - self.rdwalk_factor ** 2)
-            denom = 2 * pi * (1 + self.rdwalk_factor ** 2 - 2 * self.rdwalk_factor * cos(radians(t)))
-            f = 1
-            if denom != 0:
-                f = num / denom
-            res.append(f)
-        return res
-
-    def levi_pdf(self, max_steps):
-        alpha = self.levi_factor
-        pdf = [step ** (-alpha - 1) for step in range(1, max_steps + 1)]
-        return pdf
-
     def sample_noise(self, noise_mu, noise_musd, noise_sd):
         mu = gauss(noise_mu, noise_musd)
         return mu, noise_sd
@@ -258,4 +235,4 @@ class Agent:
         return self._speed
 
     def carries_food(self):
-        return  self._carries_food
+        return self._carries_food
