@@ -19,7 +19,7 @@ class AgentAPI:
         #self._agent = agent
         self.speed = agent.speed
         self.carries_food = agent.carries_food
-        self.set_vector = agent.set_vector
+        self.get_vector = agent.get_vector
         self.get_levi_turn_angle = agent.get_levi_turn_angle
 
 
@@ -39,17 +39,23 @@ class AgentAPI:
     #     return self._agent.get_levi_turn_angle()
 
 
+def sample_noise(noise_mu, noise_musd):
+    mu = gauss(noise_mu, noise_musd)
+    return mu
+
+
 class Agent:
     colors = {State.EXPLORING: "blue", State.SEEKING_FOOD: "orange", State.SEEKING_NEST: "green"}
 
-    def __init__(self, robot_id, x, y, speed, radius, rdwalk_factor, levi_factor,
+    def __init__(self, robot_id, x, y, speed, radius,
                  noise_mu, noise_musd, noise_sd, environment):
         self.id = robot_id
         self.pos = np.array([x, y]).astype('float64')
         self._speed = speed
         self.radius = radius
         self.orientation = random() * 360  # 360 degree angle
-        self.noise_mu, self.noise_sd = self.sample_noise(noise_mu, noise_musd, noise_sd)
+        self.noise_mu = sample_noise(noise_mu, noise_musd)
+        self.noise_sd = noise_sd
         self.environment = environment
         self.reward = 0
 
@@ -82,7 +88,7 @@ class Agent:
         return f"bot {self.id}"
 
     def step(self):
-        #self.behavior = self.new_behavior
+        self.behavior.navigation_table = self.new_nav
         sensors = self.environment.get_sensors(self)
         self.behavior.step(sensors, AgentAPI(self))
         self.move()
@@ -90,11 +96,11 @@ class Agent:
         self.check_food(sensors)
 
     def communicate(self, neighbors):
-        #self.previous_behavior = copy.deepcopy(self.behavior)
+        self.previous_nav = copy.deepcopy(self.behavior.navigation_table)
         session = CommunicationSession(self, neighbors)
         self.behavior.communicate(session)
-        #self.new_behavior = copy.deepcopy(self.behavior)
-        #self.behavior = self.previous_behavior
+        self.new_nav = self.behavior.navigation_table
+        self.behavior.navigation_table = self.previous_nav
 
     def get_target(self, location):
         return self.behavior.navigation_table.get_target(location)
@@ -127,26 +133,17 @@ class Agent:
 
         return max_x_gap < tolerance * self._speed and max_y_gap < tolerance * self._speed
 
-    def set_vector(self, location: Location):
-        self.behavior.navigation_table.set_location_vector(location,
-                                                           rotate(self.environment.get_location(location) - self.pos,
-                                                                  -self.orientation))
+    def get_vector(self, location: Location):
+        if self.environment.get_sensors(self)[location]:
+            return rotate(self.environment.get_location(location) - self.pos, -self.orientation)
+        else:
+            raise Exception(f"Robot does not sense {location}")
 
     def move(self):
-        # Robot's will : calculates where it wants to end up and check if there are no border walls
         wanted_movement = rotate(self.behavior.get_dr(), self.orientation)
         noise_angle = gauss(self.noise_mu, self.noise_sd)
         noisy_movement = rotate(wanted_movement, noise_angle)
         self.orientation = get_orientation_from_vector(noisy_movement)
-
-        # Real movement, subject to noise, clamped to borders
-        # noise_amt = gauss(self.noise_mu, self.noise_sd)
-        # n_hor = noise_amt * self.speed
-        # n_vert = 0
-        #
-        # noise_rel = np.array([n_vert, n_hor])  # noise vector in robot's relative coordinates
-        # noise = rotation_matrix(self.orientation).dot(noise_rel)  # noise vector in absolute (x, y) coordinates
-        # real_displacement = (self.displacement + noise) * (self.speed / norm(self.displacement + noise))
         self.pos = self.clamp_to_map(self.pos + noisy_movement)
 
     def clamp_to_map(self, new_position):
@@ -220,15 +217,11 @@ class Agent:
                                   self.pos[1] + self.radius * sin(radians(self.orientation)),
                                   fill="white")
 
-    def sample_noise(self, noise_mu, noise_musd, noise_sd):
-        mu = gauss(noise_mu, noise_musd)
-        return mu, noise_sd
-
     def check_food(self, sensors):
-        if self._carries_food and sensors["NEST"]:
+        if self._carries_food and sensors[Location.NEST]:
             self._carries_food = False
             self.reward += 1
-        if sensors["FOOD"]:
+        if sensors[Location.FOOD]:
             self._carries_food = True
 
     def speed(self):

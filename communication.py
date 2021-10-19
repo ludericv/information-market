@@ -22,7 +22,7 @@ class CommunicationSession:
         # increment neighbor balance
         # decrease buyer balance
         target = copy.deepcopy(self._neighbors[neighbor_index].get_target(location))
-        target.rotate(-(self._client.orientation - self._neighbors[neighbor_index].orientation))
+        target.rotate(self._neighbors[neighbor_index].orientation-self._client.orientation)
         return target
 
     def get_distance_from(self, neighbor_index):

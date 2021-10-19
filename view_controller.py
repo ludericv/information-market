@@ -24,11 +24,11 @@ class ViewController:
         debug_title = self.debug_canvas.create_text(5, 5, fill="gray30", text=f"Debug", font="Arial 13 bold", anchor="nw")
         self.debug_text = self.debug_canvas.create_text(5, 25, fill="gray30", text=f"No robot selected", anchor="nw", font="Arial 10")
 
+        self.animating = True
+        self.create_bindings()
+
         self.last_frame_time = time.time()
         self.last_fps_check_time = time.time()
-        self.animating = True
-
-        self.create_bindings()
         self.update()
         self.root.mainloop()
 
@@ -44,7 +44,7 @@ class ViewController:
         diff = time.time() - self.last_frame_time
         self.last_frame_time = time.time()
         remaining = 1 / self.fps_cap - diff
-        self.root.after(round(1000 * remaining if remaining > 0 else 0), self.update)
+        self.root.after(round(1000 * remaining if remaining > 0 else 1), self.update)
 
         # Update FPS counter
         self.fps_update_counter += 1

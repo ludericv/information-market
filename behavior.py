@@ -49,7 +49,8 @@ class HonestBehavior(Behavior):
                 if self.strategy.should_combine(self.navigation_table.get_target(location),
                                                 session.make_transaction(index, location)):
                     new_target = self.strategy.combine(self.navigation_table.get_target(location),
-                                                       session.make_transaction(index, location), session.get_distance_from(index))
+                                                       session.make_transaction(index, location),
+                                                       session.get_distance_from(index))
                     self.navigation_table.replace_target(location, new_target)
 
     def step(self, sensors, api):
@@ -60,16 +61,15 @@ class HonestBehavior(Behavior):
         self.update_nav_table_based_on_dr()
 
     def update_behavior(self, sensors, api):
-        if sensors["FOOD"]:
-            api.set_vector(Location.FOOD)
-            self.navigation_table.set_location_known(Location.FOOD, True)
-            self.navigation_table.set_location_age(Location.FOOD, 0)
-            self.navigation_table.reset_quality(Location.FOOD, 1)
-        if sensors["NEST"]:
-            api.set_vector(Location.NEST)
-            self.navigation_table.set_location_known(Location.NEST, True)
-            self.navigation_table.set_location_age(Location.NEST, 0)
-            self.navigation_table.reset_quality(Location.NEST, 1)
+        for location in Location:
+            if sensors[location]:
+                try:
+                    self.navigation_table.set_location_vector(location, api.get_vector(location))
+                    self.navigation_table.set_location_known(location, True)
+                    self.navigation_table.set_location_age(location, 0)
+                    self.navigation_table.reset_quality(location, 1)
+                except:
+                    print(f"Sensors do not sense {location}")
 
         if self.state == State.EXPLORING:
             if self.navigation_table.is_location_known(Location.FOOD) and not api.carries_food():
@@ -78,7 +78,7 @@ class HonestBehavior(Behavior):
                 self.state = State.SEEKING_NEST
 
         elif self.state == State.SEEKING_FOOD:
-            if sensors["FOOD"]:
+            if sensors[Location.FOOD]:
                 if self.navigation_table.is_location_known(Location.NEST):
                     self.state = State.SEEKING_NEST
                 else:
@@ -88,7 +88,7 @@ class HonestBehavior(Behavior):
                 self.state = State.EXPLORING
 
         elif self.state == State.SEEKING_NEST:
-            if sensors["NEST"]:
+            if sensors[Location.NEST]:
                 if self.navigation_table.is_location_known(Location.FOOD):
                     self.state = State.SEEKING_FOOD
                 else:
@@ -110,13 +110,13 @@ class HonestBehavior(Behavior):
             self.dr = api.speed() * self.navigation_table.get_location_vector(Location.FOOD)
             food_norm = norm(self.navigation_table.get_location_vector(Location.FOOD))
             if food_norm > api.speed():
-                self.dr = self.dr/food_norm
+                self.dr = self.dr / food_norm
 
         elif self.state == State.SEEKING_NEST:
             self.dr = api.speed() * self.navigation_table.get_location_vector(Location.NEST)
             nest_norm = norm(self.navigation_table.get_location_vector(Location.NEST))
             if nest_norm > api.speed():
-                self.dr = self.dr/nest_norm
+                self.dr = self.dr / nest_norm
 
         else:
             turn_angle = api.get_levi_turn_angle()

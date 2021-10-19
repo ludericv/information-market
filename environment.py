@@ -1,3 +1,4 @@
+import copy
 from math import cos, sin, radians
 
 from agent import Agent
@@ -33,6 +34,7 @@ class Environment:
     def step(self):
         # compute neighbors
         pop_size = len(self.population)
+        # pop_copy = copy.deepcopy(self.population)
         neighbors_table = [[] for i in range(pop_size)]
         for id1 in range(pop_size):
             for id2 in range(id1 + 1, pop_size):
@@ -43,7 +45,6 @@ class Environment:
         # Iterate over robots
         # 1. Negotiation/communication
         for robot in self.population:
-            # print(neighbors_table[robot.id])
             robot.communicate(neighbors_table[robot.id])
 
         # 2. Move
@@ -57,8 +58,6 @@ class Environment:
                           y=randint(self.robot_radius, self.height - 1 - self.robot_radius),
                           speed=self.robot_speed,
                           radius=self.robot_radius,
-                          rdwalk_factor=self.rdwalk_factor,
-                          levi_factor=self.levi_factor,
                           noise_mu=self.noise_mu,
                           noise_musd=self.noise_musd,
                           noise_sd=self.noise_sd,
@@ -68,8 +67,8 @@ class Environment:
     def get_sensors(self, robot):
         orientation = robot.orientation
         speed = robot._speed
-        sensors = {"FOOD": self.senses_food(robot),
-                   "NEST": self.senses_nest(robot),
+        sensors = {Location.FOOD: self.senses_food(robot),
+                   Location.NEST: self.senses_nest(robot),
                    "FRONT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians(orientation)),
                                                             robot.pos[1] + speed * sin(radians(orientation)))),
                    "RIGHT": any(
