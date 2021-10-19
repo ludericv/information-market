@@ -1,14 +1,10 @@
 from math import cos, sin, radians
 
 from agent import Agent
-from utils import norm
+from navigation import Location
+from utils import norm, distance_between
 from random import randint
-from copy import deepcopy, copy
 import numpy as np
-
-
-def distance_between(robot1, robot2):
-    return norm(robot2.pos - robot1.pos)
 
 
 class Environment:
@@ -71,17 +67,21 @@ class Environment:
 
     def get_sensors(self, robot):
         orientation = robot.orientation
-        speed = robot.speed
+        speed = robot._speed
         sensors = {"FOOD": self.senses_food(robot),
                    "NEST": self.senses_nest(robot),
                    "FRONT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians(orientation)),
                                                             robot.pos[1] + speed * sin(radians(orientation)))),
-                   "RIGHT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians((orientation - 90) % 360)),
-                                                            robot.pos[1] + speed * sin(radians((orientation - 90) % 360)))),
-                   "BACK": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians((orientation + 180) % 360)),
-                                                           robot.pos[1] + speed * sin(radians((orientation + 180) % 360)))),
-                   "LEFT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians((orientation + 90) % 360)),
-                                                           robot.pos[1] + speed * sin(radians((orientation + 90) % 360)))),
+                   "RIGHT": any(
+                       self.check_border_collision(robot, robot.pos[0] + speed * cos(radians((orientation - 90) % 360)),
+                                                   robot.pos[1] + speed * sin(radians((orientation - 90) % 360)))),
+                   "BACK": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(
+                       radians((orientation + 180) % 360)),
+                                                           robot.pos[1] + speed * sin(
+                                                               radians((orientation + 180) % 360)))),
+                   "LEFT": any(
+                       self.check_border_collision(robot, robot.pos[0] + speed * cos(radians((orientation + 90) % 360)),
+                                                   robot.pos[1] + speed * sin(radians((orientation + 90) % 360)))),
                    }
         return sensors
 
@@ -104,11 +104,11 @@ class Environment:
         dist_from_center = (robot.pos[0] - self.nest[0]) ** 2 + (robot.pos[1] - self.nest[1]) ** 2
         return dist_from_center < self.nest[2] ** 2
 
-    def get_food_location(self):
-        return np.array([self.food[0], self.food[1]])
-
-    def get_nest_location(self):
-        return np.array([self.nest[0], self.nest[1]])
+    def get_location(self, location):
+        if location == Location.FOOD:
+            return np.array([self.food[0], self.food[1]])
+        elif location == Location.NEST:
+            return np.array([self.nest[0], self.nest[1]])
 
     def draw(self, canvas):
         self.draw_zones(canvas)

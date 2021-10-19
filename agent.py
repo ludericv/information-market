@@ -1,3 +1,4 @@
+import copy
 import math
 from random import random, choices, gauss
 from math import sin, cos, radians, pi
@@ -5,10 +6,36 @@ from tkinter import LAST
 from collections import deque
 
 from behavior import HonestBehavior, State
+from communication import CommunicationSession
 from navigation import Location, NavigationTable
 import numpy as np
 
 from utils import norm, get_orientation_from_vector, rotation_matrix, rotate
+
+
+class AgentAPI:
+    def __init__(self, agent):
+        #self._agent = agent
+        self.speed = agent.speed
+        self.carries_food = agent.carries_food
+        self.set_vector = agent.set_vector
+        self.get_levi_turn_angle = agent.get_levi_turn_angle
+
+
+    # def speed(self):
+    #     return self._agent._speed
+    #
+    # def carries_food(self):
+    #     return self._agent._carries_food
+    #
+    # def set_vector(self, location: Location):
+    #     if location == Location.FOOD:
+    #         self._agent.set_food_vector()
+    #     elif location == Location.NEST:
+    #         self._agent.set_nest_vector()
+    #
+    # def get_levi_turn_angle(self):
+    #     return self._agent.get_levi_turn_angle()
 
 
 class Agent:
@@ -22,7 +49,7 @@ class Agent:
                  noise_mu, noise_musd, noise_sd, environment):
         self.id = robot_id
         self.pos = np.array([x, y]).astype('float64')
-        self.speed = speed
+        self._speed = speed
         self.radius = radius
         self.rdwalk_factor = rdwalk_factor
         self.levi_factor = levi_factor
@@ -35,9 +62,10 @@ class Agent:
         self.levi_weights = self.levi_pdf(self.max_levi_steps)
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
+        self.behavior = HonestBehavior()
+        self._carries_food = False
+        self.api = AgentAPI(self)
 
-        self.behavior = HonestBehavior(self)
-        self.carries_food = False
 
     def __str__(self):
         return f"ID: {self.id}\n" \
@@ -52,7 +80,7 @@ class Agent:
                f"info age:\n" \
                f"   -food={round(self.behavior.navigation_table.get_target(Location.FOOD).age, 3)}\n" \
                f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).age, 3)}\n" \
-               f"carries food: {self.carries_food}\n" \
+               f"carries food: {self._carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
                f"reward: {self.reward}$\n" \
                f"dr: {self.behavior.get_dr()}\n"
@@ -61,24 +89,25 @@ class Agent:
         return f"bot {self.id}"
 
     def step(self):
+        #self.behavior = self.new_behavior
         sensors = self.environment.get_sensors(self)
-        self.behavior.step(sensors)
+        self.behavior.step(sensors, AgentAPI(self))
         self.move()
         self.update_trace()
         self.check_food(sensors)
 
     def communicate(self, neighbors):
-        pass
-        # self.new_information = copy.deepcopy(self.navigation_table)
-        #
-        # for neighbor in neighbors:
-        #     for location in Location:
-        #         if self.strategy.should_combine(self.new_information.get_target(location), neighbor.get_nav_target(location)):
-        #             new_target = self.strategy.combine(self.new_information.get_target(location), neighbor.get_nav_target(location), neighbor.pos - self.pos)
-        #             self.new_information.replace_target(location, new_target)
+        #self.previous_behavior = copy.deepcopy(self.behavior)
+        session = CommunicationSession(self, neighbors)
+        self.behavior.communicate(session)
+        #self.new_behavior = copy.deepcopy(self.behavior)
+        #self.behavior = self.previous_behavior
 
-    def get_nav_target(self, location):
+    def get_target(self, location):
         return self.behavior.navigation_table.get_target(location)
+
+    def get_target_price(self, location):
+        return 0
 
     def get_nav_location_age(self, location):
         return self.behavior.navigation_table.get_age(location)
@@ -103,15 +132,12 @@ class Agent:
         max_x_gap = max(trace_x) - min(trace_x)
         max_y_gap = max(trace_y) - min(trace_y)
 
-        return max_x_gap < tolerance * self.speed and max_y_gap < tolerance * self.speed
+        return max_x_gap < tolerance * self._speed and max_y_gap < tolerance * self._speed
 
-    def set_food_vector(self):
-        self.behavior.navigation_table.set_location_vector(Location.FOOD,
-                                                           rotate(self.environment.get_food_location() - self.pos, -self.orientation))
-
-    def set_nest_vector(self):
-        self.behavior.navigation_table.set_location_vector(Location.NEST,
-                                                           rotate(self.environment.get_nest_location() - self.pos, -self.orientation))
+    def set_vector(self, location: Location):
+        self.behavior.navigation_table.set_location_vector(location,
+                                                           rotate(self.environment.get_location(location) - self.pos,
+                                                                  -self.orientation))
 
     def move(self):
         # Robot's will : calculates where it wants to end up and check if there are no border walls
@@ -159,7 +185,7 @@ class Agent:
                                     self.pos[0] + self.radius,
                                     self.pos[1] + self.radius,
                                     fill=self.colors[self.behavior.state])
-        # self.draw_comm_radius(canvas)
+        self.draw_comm_radius(canvas)
         self.draw_goal_vector(canvas)
         self.draw_orientation(canvas)
         self.draw_trace(canvas)
@@ -222,8 +248,14 @@ class Agent:
         return mu, noise_sd
 
     def check_food(self, sensors):
-        if self.carries_food and sensors["NEST"]:
-            self.carries_food = False
+        if self._carries_food and sensors["NEST"]:
+            self._carries_food = False
             self.reward += 1
         if sensors["FOOD"]:
-            self.carries_food = True
+            self._carries_food = True
+
+    def speed(self):
+        return self._speed
+
+    def carries_food(self):
+        return  self._carries_food

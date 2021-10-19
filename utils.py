@@ -22,3 +22,7 @@ def rotate(vector, angle):
     rot_mat = rotation_matrix(angle)
     rotated_vector = rot_mat.dot(vector)
     return rotated_vector
+
+
+def distance_between(robot1, robot2):
+    return norm(robot2.pos - robot1.pos)
