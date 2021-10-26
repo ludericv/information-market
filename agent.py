@@ -1,77 +1,58 @@
 import copy
-import math
 import random_walk as rw
 from random import random, choices, gauss
-from math import sin, cos, radians, pi
+from math import sin, cos, radians
 from tkinter import LAST
 from collections import deque
 
-from behavior import HonestBehavior, State
+from behavior import State
 from communication import CommunicationSession
-from navigation import Location, NavigationTable
+from navigation import Location
 import numpy as np
 
-from utils import norm, get_orientation_from_vector, rotation_matrix, rotate
+from utils import get_orientation_from_vector, rotate, InsufficientFundsException
 
 
 class AgentAPI:
     def __init__(self, agent):
-        #self._agent = agent
         self.speed = agent.speed
         self.carries_food = agent.carries_food
+        self.reward = agent.reward
         self.get_vector = agent.get_vector
         self.get_levi_turn_angle = agent.get_levi_turn_angle
-
-
-    # def speed(self):
-    #     return self._agent._speed
-    #
-    # def carries_food(self):
-    #     return self._agent._carries_food
-    #
-    # def set_vector(self, location: Location):
-    #     if location == Location.FOOD:
-    #         self._agent.set_food_vector()
-    #     elif location == Location.NEST:
-    #         self._agent.set_nest_vector()
-    #
-    # def get_levi_turn_angle(self):
-    #     return self._agent.get_levi_turn_angle()
-
-
-def sample_noise(noise_mu, noise_musd):
-    mu = gauss(noise_mu, noise_musd)
-    return mu
 
 
 class Agent:
     colors = {State.EXPLORING: "blue", State.SEEKING_FOOD: "orange", State.SEEKING_NEST: "green"}
 
     def __init__(self, robot_id, x, y, speed, radius,
-                 noise_mu, noise_musd, noise_sd, environment):
+                 noise_mu, noise_musd, noise_sd, fuel_cost,
+                 initial_reward, info_cost, behavior, environment):
         self.id = robot_id
         self.pos = np.array([x, y]).astype('float64')
         self._speed = speed
         self.radius = radius
         self.orientation = random() * 360  # 360 degree angle
-        self.noise_mu = sample_noise(noise_mu, noise_musd)
+        self.noise_mu = gauss(noise_mu, noise_musd)
         self.noise_sd = noise_sd
+        self._reward = initial_reward
+        self.fuel_cost = fuel_cost
+        self.info_cost = info_cost
         self.environment = environment
-        self.reward = 0
+
 
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
-        self.behavior = HonestBehavior()
+        self.behavior = behavior
         self._carries_food = False
         self.api = AgentAPI(self)
-
 
     def __str__(self):
         return f"ID: {self.id}\n" \
                f"state: {self.behavior.state}\n" \
-               f"expected food at: ({round(self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[0])}, {round(self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.FOOD)[1])}), \n" \
+               f"expected food at: ({round(self.pos[0] + rotate(self.behavior.navigation_table.get_location_vector(Location.FOOD), self.orientation)[0])}, {round(self.pos[1] + rotate(self.behavior.navigation_table.get_location_vector(Location.FOOD), self.orientation)[1])}), \n" \
                f"   known: {self.behavior.navigation_table.is_location_known(Location.FOOD)}\n" \
-               f"expected nest at: ({round(self.pos[0] + self.behavior.navigation_table.get_location_vector(Location.NEST)[0])}, {round(self.pos[1] + self.behavior.navigation_table.get_location_vector(Location.NEST)[1])}), \n" \
+               f"expected nest at: ({round(self.pos[0] + rotate(self.behavior.navigation_table.get_location_vector(Location.NEST), self.orientation)[0])}, {round(self.pos[1] + rotate(self.behavior.navigation_table.get_location_vector(Location.NEST), self.orientation)[1])}), \n" \
                f"   known: {self.behavior.navigation_table.is_location_known(Location.NEST)}\n" \
                f"info quality: \n" \
                f"   -food={round(self.behavior.navigation_table.get_target(Location.FOOD).decaying_quality, 3)}\n" \
@@ -81,32 +62,36 @@ class Agent:
                f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).age, 3)}\n" \
                f"carries food: {self._carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
-               f"reward: {self.reward}$\n" \
-               f"dr: {self.behavior.get_dr()}\n"
+               f"reward: {round(self._reward, 3)}$\n" \
+               f"dr: {np.round(self.behavior.get_dr(), 2 )}\n"
 
     def __repr__(self):
         return f"bot {self.id}"
 
-    def step(self):
-        self.behavior.navigation_table = self.new_nav
-        sensors = self.environment.get_sensors(self)
-        self.behavior.step(sensors, AgentAPI(self))
-        self.move()
-        self.update_trace()
-        self.check_food(sensors)
-
     def communicate(self, neighbors):
         self.previous_nav = copy.deepcopy(self.behavior.navigation_table)
-        session = CommunicationSession(self, neighbors)
+        session = CommunicationSession(self, neighbors, self.info_cost)
         self.behavior.communicate(session)
         self.new_nav = self.behavior.navigation_table
         self.behavior.navigation_table = self.previous_nav
 
+    def step(self):
+        self.behavior.navigation_table = self.new_nav
+        sensors = self.environment.get_sensors(self)
+        self.check_food(sensors)
+        self.behavior.step(sensors, AgentAPI(self))
+        try:
+            self.modify_reward(-self.fuel_cost)
+            self.move()
+        except InsufficientFundsException:
+            pass
+        self.update_trace()
+
+    def get_target_from_behavior(self, location):
+        return self.behavior.get_target(location)
+
     def get_target(self, location):
         return self.behavior.navigation_table.get_target(location)
-
-    def get_target_price(self, location):
-        return 0
 
     def get_nav_location_age(self, location):
         return self.behavior.navigation_table.get_age(location)
@@ -220,7 +205,7 @@ class Agent:
     def check_food(self, sensors):
         if self._carries_food and sensors[Location.NEST]:
             self._carries_food = False
-            self.reward += 1
+            self._reward += 1
         if sensors[Location.FOOD]:
             self._carries_food = True
 
@@ -229,3 +214,12 @@ class Agent:
 
     def carries_food(self):
         return self._carries_food
+
+    def reward(self):
+        return self._reward
+
+    def modify_reward(self, amount):
+        new_reward = self._reward + amount
+        if new_reward < 0:
+            raise InsufficientFundsException
+        self._reward = new_reward

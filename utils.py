@@ -26,9 +26,6 @@ def rotate(vector, angle):
 def distance_between(robot1, robot2):
     return norm(robot2.pos - robot1.pos)
 
-class RandomWalk:
-    def __init__(self, rdwalk_factor, levi_factor):
-        max_levi_steps = 1000
-        thetas = np.arange(0, 360)
-        self.crw_weights = crw_pdf(thetas, rdwalk_factor)
-        self.levi_weights = levi_pdf(max_levi_steps, levi_factor)
+
+class InsufficientFundsException(Exception):
+    pass

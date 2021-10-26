@@ -2,6 +2,7 @@ import copy
 from math import cos, sin, radians
 
 from agent import Agent
+from behavior import HonestBehavior
 from navigation import Location
 from utils import norm, distance_between
 from random import randint
@@ -13,7 +14,7 @@ class Environment:
     def __init__(self, width=500, height=500, nb_robots=30, robot_speed=3, robot_radius=5, comm_radius=25,
                  rdwalk_factor=0,
                  levi_factor=2, food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25, noise_mu=0,
-                 noise_musd=1, noise_sd=0.1):
+                 noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01):
         self.population = list()
         self.width = width
         self.height = height
@@ -28,6 +29,9 @@ class Environment:
         self.noise_mu = noise_mu
         self.noise_musd = noise_musd
         self.noise_sd = noise_sd
+        self.initial_reward = initial_reward
+        self.fuel_cost = fuel_cost
+        self.info_cost = info_cost
         self.create_robots()
         self.best_bot_id = self.get_best_bot_id()
 
@@ -61,6 +65,10 @@ class Environment:
                           noise_mu=self.noise_mu,
                           noise_musd=self.noise_musd,
                           noise_sd=self.noise_sd,
+                          initial_reward=self.initial_reward,
+                          fuel_cost=self.fuel_cost,
+                          info_cost=self.info_cost,
+                          behavior=HonestBehavior(),
                           environment=self)
             self.population.append(robot)
 

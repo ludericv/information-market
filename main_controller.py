@@ -28,7 +28,10 @@ class MainController:
                                        nest_radius=self.parameters["NEST_RADIUS"],
                                        noise_mu=self.parameters["NOISE_MU"],
                                        noise_musd=self.parameters["NOISE_MUSD"],
-                                       noise_sd=self.parameters["NOISE_SD"]
+                                       noise_sd=self.parameters["NOISE_SD"],
+                                       initial_reward=self.parameters["INITIAL_REWARD"],
+                                       fuel_cost=self.parameters["FUEL_COST"],
+                                       info_cost=self.parameters["INFO_COST"]
                                        )
         self.tick = 0
         if self.parameters["VISUALIZE"] != 0:
@@ -48,7 +51,8 @@ class MainController:
                 self.add_to_parameters(parameter, value)
 
     def add_to_parameters(self, parameter, value):
-        float_params = {"RDWALK_FACTOR", "ROBOT_SPEED", "LEVI_FACTOR", "NOISE_MU", "NOISE_MUSD", "NOISE_SD", "COMM_RADIUS"}
+        float_params = {"RDWALK_FACTOR", "ROBOT_SPEED", "LEVI_FACTOR", "NOISE_MU", "NOISE_MUSD",
+                        "NOISE_SD", "COMM_RADIUS", "INITIAL_REWARD", "FUEL_COST", "INFO_COST"}
         if parameter in float_params:
             self.parameters[parameter] = float(value)
         else:
@@ -68,7 +72,7 @@ class MainController:
     def get_reward_stats(self):
         res = ""
         for bot in self.environment.population:
-            res += str(bot.reward) + ","
+            res += str(bot._reward) + ","
         res = res[:-1] # remove last comma
         res += "\n"
         return res

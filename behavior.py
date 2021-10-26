@@ -5,9 +5,10 @@ from math import cos, radians, sin
 
 import numpy as np
 
+from communication import CommunicationSession
 from navigation import Location, NavigationTable
 from strategy import BetterAgeStrategy
-from utils import get_orientation_from_vector, norm
+from utils import get_orientation_from_vector, norm, InsufficientFundsException
 
 
 class State(Enum):
@@ -33,6 +34,9 @@ class Behavior(ABC):
     def get_dr(self):
         return self.dr
 
+    def get_target(self, location):
+        return self.navigation_table.get_target(location)
+
 
 class HonestBehavior(Behavior):
 
@@ -41,17 +45,22 @@ class HonestBehavior(Behavior):
         self.state = State.EXPLORING
         self.strategy = BetterAgeStrategy()
 
-    def communicate(self, session):
+    def communicate(self, session: CommunicationSession):
         for location in Location:
             ages = session.get_ages(location)
             known_locations = session.are_locations_known(location)
-            for index in range(len(ages)):
-                if self.strategy.should_combine(self.navigation_table.get_target(location),
-                                                session.make_transaction(index, location)):
-                    new_target = self.strategy.combine(self.navigation_table.get_target(location),
-                                                       session.make_transaction(index, location),
-                                                       session.get_distance_from(index))
-                    self.navigation_table.replace_target(location, new_target)
+            ages_sorted = sorted([(age, index) for index, (age, is_known) in enumerate(zip(ages, known_locations)) if is_known])
+            for age, index in ages_sorted:
+                if not self.navigation_table.is_location_known(location) or age < self.navigation_table.get_age(location):
+                    try:
+                        other_target = session.make_transaction(neighbor_index=index, location=location)
+                        new_target = self.strategy.combine(self.navigation_table.get_target(location),
+                                                           other_target,
+                                                           session.get_distance_from(index))
+                        self.navigation_table.replace_target(location, new_target)
+                        break
+                    except InsufficientFundsException:
+                        pass
 
     def step(self, sensors, api):
         self.dr[0], self.dr[1] = 0, 0
