@@ -28,3 +28,6 @@ class CommunicationSession:
     def get_distance_from(self, neighbor_index):
         distance = self._neighbors[neighbor_index].pos - self._client.pos
         return rotate(distance, -self._client.orientation)
+
+    def get_mu(self):
+        return self._client.noise_mu

@@ -17,6 +17,7 @@ from utils import norm, get_orientation_from_vector, rotation_matrix, rotate
 class AgentAPI:
     def __init__(self, agent):
         #self._agent = agent
+        self.get_mu = agent.noise_mu
         self.speed = agent.speed
         self.carries_food = agent.carries_food
         self.get_vector = agent.get_vector
