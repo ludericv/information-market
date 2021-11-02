@@ -1,9 +1,8 @@
-import copy
 from math import cos, sin, radians
 
-from agent import Agent
-from behavior import HonestBehavior
-from navigation import Location
+from model.agent import Agent
+from model.behavior import HonestBehavior
+from model.navigation import Location
 from utils import norm, distance_between
 from random import randint
 import numpy as np

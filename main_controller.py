@@ -1,7 +1,7 @@
 import time
 import random_walk
 
-from environment import Environment
+from model.environment import Environment
 from view_controller import ViewController
 
 

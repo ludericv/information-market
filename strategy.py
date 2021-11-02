@@ -1,7 +1,7 @@
 import copy
 from abc import ABC, abstractmethod
 
-from navigation import Target
+from model.navigation import Target
 
 
 class InformationStrategy(ABC):

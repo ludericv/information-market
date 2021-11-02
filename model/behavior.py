@@ -1,12 +1,11 @@
-import copy
 from abc import ABC, abstractmethod
 from enum import Enum
 from math import cos, radians, sin
 
 import numpy as np
 
-from communication import CommunicationSession
-from navigation import Location, NavigationTable
+from model.communication import CommunicationSession
+from model.navigation import Location, NavigationTable
 from strategy import BetterAgeStrategy
 from utils import get_orientation_from_vector, norm, InsufficientFundsException
 

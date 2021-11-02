@@ -5,9 +5,9 @@ from math import sin, cos, radians
 from tkinter import LAST
 from collections import deque
 
-from behavior import State
-from communication import CommunicationSession
-from navigation import Location
+from model.behavior import State
+from model.communication import CommunicationSession
+from model.navigation import Location
 import numpy as np
 
 from utils import get_orientation_from_vector, rotate, InsufficientFundsException

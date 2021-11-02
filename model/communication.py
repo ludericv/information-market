@@ -1,7 +1,7 @@
 import copy
 
-from navigation import Location, Target
-from utils import distance_between, rotate
+from model.navigation import Location, Target
+from utils import rotate
 
 
 class CommunicationSession:
