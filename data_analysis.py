@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -29,5 +30,10 @@ def main():
     plt.show()
 
 
+def main2():
+    df = pd.read_csv("data_sorted.txt", header=None)
+    plt.plot(df.apply(np.mean, axis=0))
+    plt.show()
+
 if __name__ == '__main__':
-    main()
+    main2()

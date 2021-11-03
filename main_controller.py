@@ -64,16 +64,17 @@ class MainController:
             self.environment.step()
 
     def start_simulation(self):
-        now = time.time()
+        # now = time.time()
         for step_nb in range(self.parameters["SIMULATION_STEPS"]):
             self.step()
         # print(f"Time taken for {self.parameters['SIMULATION_STEPS']} steps: {time.time()-now}")
 
     def get_reward_stats(self):
+        sorted_bots = sorted([bot for bot in self.environment.population], key=lambda bot: abs(bot.noise_mu))
         res = ""
-        for bot in self.environment.population:
-            res += str(bot._reward) + ","
-        res = res[:-1] # remove last comma
+        for bot in sorted_bots:
+            res += str(bot.reward()) + ","
+        res = res[:-1]  # remove last comma
         res += "\n"
         return res
 
