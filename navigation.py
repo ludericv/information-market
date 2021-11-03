@@ -38,9 +38,9 @@ class Target:
         self.relative_distance = rot_mat.dot(self.relative_distance)
 
     def decay_quality(self, decay_rate):
-        self.decaying_quality *= decay_rate
-        # res = self.decaying_quality - decay_rate
-        # self.decaying_quality = res if res > 0 else 0
+        # self.decaying_quality *= decay_rate
+        res = self.decaying_quality - decay_rate
+        self.decaying_quality = res if res > 0 else 0
 
 
 class NavigationTable:

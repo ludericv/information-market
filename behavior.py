@@ -39,7 +39,7 @@ class HonestBehavior(Behavior):
     def __init__(self):
         super().__init__()
         self.state = State.EXPLORING
-        self.strategy = WeightedDecayingQualityStrategy()
+        self.strategy = DecayingQualityStrategy()
 
 
     def communicate(self, session):
@@ -132,4 +132,4 @@ class HonestBehavior(Behavior):
     def update_nav_table_based_on_dr(self, api):
         self.navigation_table.update_from_movement(self.dr)
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
-        self.navigation_table.decay_qualities(1-0.01*abs(api.get_mu))
+        self.navigation_table.decay_qualities(0.01*abs(api.get_mu))
