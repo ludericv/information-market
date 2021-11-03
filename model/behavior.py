@@ -50,7 +50,7 @@ class HonestBehavior(Behavior):
             known_locations = session.are_locations_known(location)
             ages_sorted = sorted([(age, index) for index, (age, is_known) in enumerate(zip(ages, known_locations)) if is_known])
             for age, index in ages_sorted:
-                if not self.navigation_table.is_location_known(location) or age < self.navigation_table.get_age(location):
+                if not self.navigation_table.is_location_known(location) or age < self.navigation_table.get_age(location) - 10:
                     try:
                         other_target = session.make_transaction(neighbor_index=index, location=location)
                         new_target = self.strategy.combine(self.navigation_table.get_target(location),

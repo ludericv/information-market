@@ -1,5 +1,8 @@
+import os
 import tkinter as tk
 import time
+
+from PIL import Image, ImageTk
 
 
 class ViewController:
@@ -30,6 +33,7 @@ class ViewController:
         self.last_frame_time = time.time()
         self.last_fps_check_time = time.time()
         self.update()
+
         self.root.mainloop()
 
     def update(self):
@@ -56,9 +60,11 @@ class ViewController:
     def refresh(self):
         self.display_selected_info()
         self.canvas.delete("all")
+
         self.controller.environment.draw(self.canvas)
         self.canvas.create_text(50, 10, fill="black",
                                 text=f"{round(self.fps)} FPS - step {self.controller.tick}")
+
         if self.selected_robot is not None:
             circle = self.canvas.create_oval(self.selected_robot.pos[0] - self.selected_robot.radius,
                                              self.selected_robot.pos[1] - self.selected_robot.radius,

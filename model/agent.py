@@ -159,11 +159,12 @@ class Agent:
                                     self.pos[1] - self.radius,
                                     self.pos[0] + self.radius,
                                     self.pos[1] + self.radius,
-                                    fill=self.colors[self.behavior.state])
-        self.draw_comm_radius(canvas)
-        self.draw_goal_vector(canvas)
+                                    fill=self.colors[self.behavior.state],
+                                    outline="black")
+        #self.draw_comm_radius(canvas)
+        #self.draw_goal_vector(canvas)
         self.draw_orientation(canvas)
-        self.draw_trace(canvas)
+        #self.draw_trace(canvas)
 
     def draw_trace(self, canvas):
         tail = canvas.create_line(*self.trace)
@@ -184,7 +185,8 @@ class Agent:
                                    self.pos[1] + rotate(
                                        self.behavior.navigation_table.get_location_vector(Location.FOOD),
                                        self.orientation)[1],
-                                   arrow=LAST)
+                                   arrow=LAST,
+                                   fill="black")
         arrow = canvas.create_line(self.pos[0],
                                    self.pos[1],
                                    self.pos[0] + rotate(
@@ -193,7 +195,8 @@ class Agent:
                                    self.pos[1] + rotate(
                                        self.behavior.navigation_table.get_location_vector(Location.NEST),
                                        self.orientation)[1],
-                                   arrow=LAST)
+                                   arrow=LAST,
+                                   fill="black")
 
     def draw_orientation(self, canvas):
         line = canvas.create_line(self.pos[0],

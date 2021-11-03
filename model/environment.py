@@ -1,6 +1,4 @@
-import os
 from math import cos, sin, radians
-from tkinter import PhotoImage
 from PIL import Image, ImageTk
 from model.agent import Agent
 from model.behavior import HonestBehavior
@@ -149,8 +147,11 @@ class Environment:
         return best_bot_id
 
     def draw_strawberries(self, canvas):
+        img = Image.open("strawberry.png")
+        self.img = ImageTk.PhotoImage(img)
         for id, pos in self.foraging_spawns[Location.FOOD].items():
-            res = canvas.create_rectangle(pos[0]-4, pos[1]-4, pos[0]+4, pos[1]+4, fill="red")
+            canvas.create_image(pos[0]-8, pos[1]-8, image=self.img, anchor='nw')
+            #res = canvas.create_rectangle(pos[0]-4, pos[1]-4, pos[0]+4, pos[1]+4, fill="red")
 
     def draw_best_bot(self, canvas):
         circle = canvas.create_oval(self.population[self.best_bot_id].pos[0] - 4,
