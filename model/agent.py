@@ -78,7 +78,7 @@ class Agent:
     def step(self):
         self.behavior.navigation_table = self.new_nav
         sensors = self.environment.get_sensors(self)
-        self.check_food(sensors)
+        # self.check_food(sensors)
         self.behavior.step(sensors, AgentAPI(self))
         try:
             self.modify_reward(-self.fuel_cost)
@@ -120,7 +120,7 @@ class Agent:
 
     def get_vector(self, location: Location):
         if self.environment.get_sensors(self)[location]:
-            return rotate(self.environment.get_location(location) - self.pos, -self.orientation)
+            return rotate(self.environment.get_location(location, self) - self.pos, -self.orientation)
         else:
             raise Exception(f"Robot does not sense {location}")
 
@@ -202,12 +202,12 @@ class Agent:
                                   self.pos[1] + self.radius * sin(radians(self.orientation)),
                                   fill="white")
 
-    def check_food(self, sensors):
-        if self._carries_food and sensors[Location.NEST]:
-            self._carries_food = False
-            self._reward += 1
-        if sensors[Location.FOOD]:
-            self._carries_food = True
+    # def check_food(self, sensors):
+    #     if self._carries_food and sensors[Location.NEST]:
+    #         self._carries_food = False
+    #         self._reward += 1
+    #     if sensors[Location.FOOD]:
+    #         self._carries_food = True
 
     def speed(self):
         return self._speed
@@ -223,3 +223,9 @@ class Agent:
         if new_reward < 0:
             raise InsufficientFundsException
         self._reward = new_reward
+
+    def drop_food(self):
+        self._carries_food = False
+
+    def pickup_food(self):
+        self._carries_food = True

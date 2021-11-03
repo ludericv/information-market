@@ -20,7 +20,6 @@ def main_processes():
         print(f"end of batch {batch}")
 
 
-
 def run():
     with open("results_weighteddecaying_expnoise.txt", "a") as file:
         controller = MainController(config_file="config.txt")

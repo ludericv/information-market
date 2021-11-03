@@ -1,10 +1,12 @@
+import os
 from math import cos, sin, radians
-
+from tkinter import PhotoImage
+from PIL import Image, ImageTk
 from model.agent import Agent
 from model.behavior import HonestBehavior
 from model.navigation import Location
 from utils import norm, distance_between
-from random import randint
+from random import randint, random
 import numpy as np
 
 
@@ -25,12 +27,14 @@ class Environment:
         self.levi_factor = levi_factor
         self.food = (food_x, food_y, food_radius)
         self.nest = (nest_x, nest_y, nest_radius)
+        self.locations = {Location.FOOD: self.food, Location.NEST: self.nest}
         self.noise_mu = noise_mu
         self.noise_musd = noise_musd
         self.noise_sd = noise_sd
         self.initial_reward = initial_reward
         self.fuel_cost = fuel_cost
         self.info_cost = info_cost
+        self.foraging_spawns = self.create_spawn_dicts()
         self.create_robots()
         self.best_bot_id = self.get_best_bot_id()
 
@@ -52,6 +56,7 @@ class Environment:
 
         # 2. Move
         for robot in self.population:
+            self.check_locations(robot)
             robot.step()
 
     def create_robots(self):
@@ -73,9 +78,9 @@ class Environment:
 
     def get_sensors(self, robot):
         orientation = robot.orientation
-        speed = robot._speed
-        sensors = {Location.FOOD: self.senses_food(robot),
-                   Location.NEST: self.senses_nest(robot),
+        speed = robot.speed()
+        sensors = {Location.FOOD: self.senses(robot, Location.FOOD),
+                   Location.NEST: self.senses(robot, Location.NEST),
                    "FRONT": any(self.check_border_collision(robot, robot.pos[0] + speed * cos(radians(orientation)),
                                                             robot.pos[1] + speed * sin(radians(orientation)))),
                    "RIGHT": any(
@@ -102,22 +107,24 @@ class Environment:
 
         return collide_x, collide_y
 
-    def senses_food(self, robot):
-        dist_from_center = (robot.pos[0] - self.food[0]) ** 2 + (robot.pos[1] - self.food[1]) ** 2
-        return dist_from_center < self.food[2] ** 2
+    def senses(self, robot, location):
+        dist_vector = robot.pos - np.array([self.locations[location][0], self.locations[location][1]])
+        dist_from_center = np.sqrt(dist_vector.dot(dist_vector))
+        return dist_from_center < self.locations[location][2]
 
-    def senses_nest(self, robot):
-        dist_from_center = (robot.pos[0] - self.nest[0]) ** 2 + (robot.pos[1] - self.nest[1]) ** 2
-        return dist_from_center < self.nest[2] ** 2
+    def is_on_top_of_spawn(self, robot, location):
+        dist_vector = robot.pos - self.foraging_spawns[location].get(robot.id)
+        return np.sqrt(dist_vector.dot(dist_vector)) < robot.radius
 
-    def get_location(self, location):
-        if location == Location.FOOD:
-            return np.array([self.food[0], self.food[1]])
-        elif location == Location.NEST:
-            return np.array([self.nest[0], self.nest[1]])
+    def get_location(self, location, agent):
+        if agent.id in self.foraging_spawns[location]:
+            return self.foraging_spawns[location][agent.id]
+        else:
+            return np.array([self.locations[location][0], self.locations[location][1]])
 
     def draw(self, canvas):
         self.draw_zones(canvas)
+        self.draw_strawberries(canvas)
         for robot in self.population:
             robot.draw(canvas)
         # self.draw_best_bot(canvas)
@@ -141,6 +148,10 @@ class Environment:
                 best_bot_id = bot.id
         return best_bot_id
 
+    def draw_strawberries(self, canvas):
+        for id, pos in self.foraging_spawns[Location.FOOD].items():
+            res = canvas.create_rectangle(pos[0]-4, pos[1]-4, pos[0]+4, pos[1]+4, fill="red")
+
     def draw_best_bot(self, canvas):
         circle = canvas.create_oval(self.population[self.best_bot_id].pos[0] - 4,
                                     self.population[self.best_bot_id].pos[1] - 4,
@@ -156,3 +167,43 @@ class Environment:
                 break
 
         return selected
+
+    def create_spawn_dicts(self):
+        d = dict()
+        for location in Location:
+            d[location] = dict()
+        return d
+
+    def check_locations(self, robot):
+        if robot.carries_food():
+            if self.senses(robot, Location.NEST):
+                # Spawn deposit location if needed
+                if robot.id not in self.foraging_spawns[Location.NEST]:
+                    self.add_spawn(Location.NEST, robot)
+                # Check if robot can deposit food
+                if self.is_on_top_of_spawn(robot, Location.NEST):
+                    self.deposit_food(robot)
+        else:
+            if self.senses(robot, Location.FOOD):
+                # Spawn food if needed
+                if robot.id not in self.foraging_spawns[Location.FOOD]:
+                    self.add_spawn(Location.FOOD, robot)
+                # Check if robot can pickup food
+                if self.is_on_top_of_spawn(robot, Location.FOOD):
+                    self.pickup_food(robot)
+
+    def add_spawn(self, location, robot):
+        rand_angle, rand_rad = random() * 360, random() * self.locations[location][2]
+        pos_in_circle = rand_rad * np.array([cos(radians(rand_angle)), sin(radians(rand_angle))])
+        self.foraging_spawns[location][robot.id] = np.array([self.locations[location][0],
+                                                             self.locations[location][1]]) + pos_in_circle
+
+    def deposit_food(self, robot):
+        robot.drop_food()
+        self.foraging_spawns[Location.NEST].pop(robot.id)
+        robot.modify_reward(1)
+
+    def pickup_food(self, robot):
+        robot.pickup_food()
+        self.foraging_spawns[Location.FOOD].pop(robot.id)
+

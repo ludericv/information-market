@@ -86,7 +86,7 @@ class HonestBehavior(Behavior):
                 self.state = State.SEEKING_NEST
 
         elif self.state == State.SEEKING_FOOD:
-            if sensors[Location.FOOD]:
+            if api.carries_food():
                 if self.navigation_table.is_location_known(Location.NEST):
                     self.state = State.SEEKING_NEST
                 else:
@@ -96,7 +96,7 @@ class HonestBehavior(Behavior):
                 self.state = State.EXPLORING
 
         elif self.state == State.SEEKING_NEST:
-            if sensors[Location.NEST]:
+            if not api.carries_food():
                 if self.navigation_table.is_location_known(Location.FOOD):
                     self.state = State.SEEKING_FOOD
                 else:
