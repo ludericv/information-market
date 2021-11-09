@@ -66,10 +66,10 @@ class ViewController:
                                 text=f"{round(self.fps)} FPS - step {self.controller.tick}")
 
         if self.selected_robot is not None:
-            circle = self.canvas.create_oval(self.selected_robot.pos[0] - self.selected_robot.radius,
-                                             self.selected_robot.pos[1] - self.selected_robot.radius,
-                                             self.selected_robot.pos[0] + self.selected_robot.radius,
-                                             self.selected_robot.pos[1] + self.selected_robot.radius,
+            circle = self.canvas.create_oval(self.selected_robot.pos[0] - self.selected_robot._radius,
+                                             self.selected_robot.pos[1] - self.selected_robot._radius,
+                                             self.selected_robot.pos[0] + self.selected_robot._radius,
+                                             self.selected_robot.pos[1] + self.selected_robot._radius,
                                              outline="red", width=2)
 
     def create_bindings(self):

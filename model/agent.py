@@ -17,6 +17,7 @@ class AgentAPI:
     def __init__(self, agent):
         self.speed = agent.speed
         self.carries_food = agent.carries_food
+        self.radius = agent.radius
         self.reward = agent.reward
         self.get_vector = agent.get_vector
         self.get_levi_turn_angle = agent.get_levi_turn_angle
@@ -31,7 +32,7 @@ class Agent:
         self.id = robot_id
         self.pos = np.array([x, y]).astype('float64')
         self._speed = speed
-        self.radius = radius
+        self._radius = radius
         self.orientation = random() * 360  # 360 degree angle
         self.noise_mu = gauss(noise_mu, noise_musd)
         self.noise_sd = noise_sd
@@ -132,14 +133,14 @@ class Agent:
         self.pos = self.clamp_to_map(self.pos + noisy_movement)
 
     def clamp_to_map(self, new_position):
-        if new_position[0] < self.radius:
-            new_position[0] = self.radius
-        if new_position[1] < self.radius:
-            new_position[1] = self.radius
-        if new_position[0] > self.environment.width - self.radius:
-            new_position[0] = self.environment.width - self.radius
-        if new_position[1] > self.environment.height - self.radius:
-            new_position[1] = self.environment.height - self.radius
+        if new_position[0] < self._radius:
+            new_position[0] = self._radius
+        if new_position[1] < self._radius:
+            new_position[1] = self._radius
+        if new_position[0] > self.environment.width - self._radius:
+            new_position[0] = self.environment.width - self._radius
+        if new_position[1] > self.environment.height - self._radius:
+            new_position[1] = self.environment.height - self._radius
         return new_position
 
     def update_levi_counter(self):
@@ -155,10 +156,10 @@ class Agent:
         return angle
 
     def draw(self, canvas):
-        circle = canvas.create_oval(self.pos[0] - self.radius,
-                                    self.pos[1] - self.radius,
-                                    self.pos[0] + self.radius,
-                                    self.pos[1] + self.radius,
+        circle = canvas.create_oval(self.pos[0] - self._radius,
+                                    self.pos[1] - self._radius,
+                                    self.pos[0] + self._radius,
+                                    self.pos[1] + self._radius,
                                     fill=self.colors[self.behavior.state],
                                     outline="black")
         #self.draw_comm_radius(canvas)
@@ -201,8 +202,8 @@ class Agent:
     def draw_orientation(self, canvas):
         line = canvas.create_line(self.pos[0],
                                   self.pos[1],
-                                  self.pos[0] + self.radius * cos(radians(self.orientation)),
-                                  self.pos[1] + self.radius * sin(radians(self.orientation)),
+                                  self.pos[0] + self._radius * cos(radians(self.orientation)),
+                                  self.pos[1] + self._radius * sin(radians(self.orientation)),
                                   fill="white")
 
     # def check_food(self, sensors):
@@ -214,6 +215,9 @@ class Agent:
 
     def speed(self):
         return self._speed
+
+    def radius(self):
+        return self._radius
 
     def carries_food(self):
         return self._carries_food

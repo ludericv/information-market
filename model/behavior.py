@@ -50,7 +50,7 @@ class HonestBehavior(Behavior):
             known_locations = session.are_locations_known(location)
             ages_sorted = sorted([(age, index) for index, (age, is_known) in enumerate(zip(ages, known_locations)) if is_known])
             for age, index in ages_sorted:
-                if not self.navigation_table.is_location_known(location) or age < self.navigation_table.get_age(location) - 10:
+                if age < self.navigation_table.get_age(location) - 10:
                     try:
                         other_target = session.make_transaction(neighbor_index=index, location=location)
                         new_target = self.strategy.combine(self.navigation_table.get_target(location),
@@ -91,7 +91,7 @@ class HonestBehavior(Behavior):
                     self.state = State.SEEKING_NEST
                 else:
                     self.state = State.EXPLORING
-            elif norm(self.navigation_table.get_location_vector(Location.FOOD)) < api.speed():
+            elif norm(self.navigation_table.get_location_vector(Location.FOOD)) < api.radius():
                 self.navigation_table.set_location_known(Location.FOOD, False)
                 self.state = State.EXPLORING
 
@@ -101,7 +101,7 @@ class HonestBehavior(Behavior):
                     self.state = State.SEEKING_FOOD
                 else:
                     self.state = State.EXPLORING
-            elif norm(self.navigation_table.get_location_vector(Location.NEST)) < api.speed():
+            elif norm(self.navigation_table.get_location_vector(Location.NEST)) < api.radius():
                 self.navigation_table.set_location_known(Location.NEST, False)
                 self.state = State.EXPLORING
 
@@ -115,16 +115,16 @@ class HonestBehavior(Behavior):
 
     def update_movement_based_on_state(self, api):
         if self.state == State.SEEKING_FOOD:
-            self.dr = api.speed() * self.navigation_table.get_location_vector(Location.FOOD)
+            self.dr = self.navigation_table.get_location_vector(Location.FOOD)
             food_norm = norm(self.navigation_table.get_location_vector(Location.FOOD))
             if food_norm > api.speed():
-                self.dr = self.dr / food_norm
+                self.dr = self.dr * api.speed() / food_norm
 
         elif self.state == State.SEEKING_NEST:
-            self.dr = api.speed() * self.navigation_table.get_location_vector(Location.NEST)
+            self.dr = self.navigation_table.get_location_vector(Location.NEST)
             nest_norm = norm(self.navigation_table.get_location_vector(Location.NEST))
             if nest_norm > api.speed():
-                self.dr = self.dr / nest_norm
+                self.dr = self.dr * api.speed() / nest_norm
 
         else:
             turn_angle = api.get_levi_turn_angle()

@@ -97,10 +97,10 @@ class Environment:
     def check_border_collision(self, robot, new_x, new_y):
         collide_x = False
         collide_y = False
-        if new_x + robot.radius >= self.width or new_x - robot.radius < 0:
+        if new_x + robot._radius >= self.width or new_x - robot._radius < 0:
             collide_x = True
 
-        if new_y + robot.radius >= self.height or new_y - robot.radius < 0:
+        if new_y + robot._radius >= self.height or new_y - robot._radius < 0:
             collide_y = True
 
         return collide_x, collide_y
@@ -112,7 +112,7 @@ class Environment:
 
     def is_on_top_of_spawn(self, robot, location):
         dist_vector = robot.pos - self.foraging_spawns[location].get(robot.id)
-        return np.sqrt(dist_vector.dot(dist_vector)) < robot.radius
+        return np.sqrt(dist_vector.dot(dist_vector)) < robot._radius
 
     def get_location(self, location, agent):
         if agent.id in self.foraging_spawns[location]:
