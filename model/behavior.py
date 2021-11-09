@@ -6,7 +6,7 @@ import numpy as np
 
 from model.communication import CommunicationSession
 from model.navigation import Location, NavigationTable
-from strategy import BetterAgeStrategy
+from strategy import BetterAgeStrategy, WeightedAverageAgeStrategy
 from utils import get_orientation_from_vector, norm, InsufficientFundsException
 
 
@@ -42,7 +42,7 @@ class HonestBehavior(Behavior):
     def __init__(self):
         super().__init__()
         self.state = State.EXPLORING
-        self.strategy = BetterAgeStrategy()
+        self.strategy = WeightedAverageAgeStrategy()
 
     def communicate(self, session: CommunicationSession):
         for location in Location:

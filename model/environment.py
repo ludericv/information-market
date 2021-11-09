@@ -194,7 +194,7 @@ class Environment:
                     self.pickup_food(robot)
 
     def add_spawn(self, location, robot):
-        rand_angle, rand_rad = random() * 360, random() * self.locations[location][2]
+        rand_angle, rand_rad = random() * 360, np.sqrt(random()) * self.locations[location][2]
         pos_in_circle = rand_rad * np.array([cos(radians(rand_angle)), sin(radians(rand_angle))])
         self.foraging_spawns[location][robot.id] = np.array([self.locations[location][0],
                                                              self.locations[location][1]]) + pos_in_circle
