@@ -11,10 +11,10 @@ class CommunicationSession:
         self._info_cost = info_cost
 
     def get_ages(self, location: Location):
-        return [n.get_nav_location_age(location) for n in self._neighbors]
+        return [n.get_target_from_behavior(location).get_age() for n in self._neighbors]
 
     def are_locations_known(self, location: Location):
-        return [n.knows_location(location) for n in self._neighbors]
+        return [n.get_target_from_behavior(location).is_known() for n in self._neighbors]
 
     def get_target_price(self, neighbor_index: int, location: Location) -> float:
         return self._info_cost

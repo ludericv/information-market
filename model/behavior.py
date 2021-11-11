@@ -1,3 +1,4 @@
+import copy
 from abc import ABC, abstractmethod
 from enum import Enum
 from math import cos, radians, sin
@@ -21,6 +22,7 @@ class Behavior(ABC):
     def __init__(self):
         self.dr = np.array([0, 0]).astype('float64')
         self.navigation_table = NavigationTable(quality=1)
+        self.color = "blue"
 
     @abstractmethod
     def communicate(self, neighbors):
@@ -35,6 +37,9 @@ class Behavior(ABC):
 
     def get_target(self, location):
         return self.navigation_table.get_target(location)
+
+    def debug_text(self):
+        return ""
 
 
 class HonestBehavior(Behavior):
@@ -139,3 +144,25 @@ class HonestBehavior(Behavior):
     def update_nav_table_based_on_dr(self):
         self.navigation_table.update_from_movement(self.dr)
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
+
+
+class SaboteurBehavior(HonestBehavior):
+    def __init__(self):
+        super().__init__()
+        self.color = "red"
+
+    def get_target(self, location):
+        t = copy.deepcopy(self.navigation_table.get_target(location))
+        t.rotate(90)
+        return t
+
+
+class GreedyBehavior(HonestBehavior):
+    def __init__(self):
+        super().__init__()
+        self.color = "green"
+
+    def get_target(self, location):
+        t = copy.deepcopy(self.navigation_table.get_target(location))
+        t.age = 1
+        return t

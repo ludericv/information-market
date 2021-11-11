@@ -15,6 +15,7 @@ class MainController:
         self.environment = Environment(width=self.parameters["WIDTH"],
                                        height=self.parameters["HEIGHT"],
                                        nb_robots=self.parameters["NB_ROBOTS"],
+                                       nb_honest=self.parameters["NB_HONEST"],
                                        robot_speed=self.parameters["ROBOT_SPEED"],
                                        comm_radius=self.parameters["COMM_RADIUS"],
                                        robot_radius=self.parameters["ROBOT_RADIUS"],
@@ -69,10 +70,18 @@ class MainController:
             self.step()
         # print(f"Time taken for {self.parameters['SIMULATION_STEPS']} steps: {time.time()-now}")
 
-    def get_reward_stats(self):
+    def get_sorted_reward_stats(self):
         sorted_bots = sorted([bot for bot in self.environment.population], key=lambda bot: abs(bot.noise_mu))
         res = ""
         for bot in sorted_bots:
+            res += str(bot.reward()) + ","
+        res = res[:-1]  # remove last comma
+        res += "\n"
+        return res
+
+    def get_reward_stats(self):
+        res = ""
+        for bot in self.environment.population:
             res += str(bot.reward()) + ","
         res = res[:-1]  # remove last comma
         res += "\n"

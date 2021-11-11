@@ -1,7 +1,7 @@
 from math import cos, sin, radians
 from PIL import Image, ImageTk
 from model.agent import Agent
-from model.behavior import HonestBehavior
+from model.behavior import HonestBehavior, SaboteurBehavior, GreedyBehavior
 from model.navigation import Location
 from utils import norm, distance_between
 from random import randint, random
@@ -10,7 +10,7 @@ import numpy as np
 
 class Environment:
 
-    def __init__(self, width=500, height=500, nb_robots=30, robot_speed=3, robot_radius=5, comm_radius=25,
+    def __init__(self, width=500, height=500, nb_robots=30, nb_honest=29, robot_speed=3, robot_radius=5, comm_radius=25,
                  rdwalk_factor=0,
                  levi_factor=2, food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25, noise_mu=0,
                  noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01):
@@ -18,6 +18,7 @@ class Environment:
         self.width = width
         self.height = height
         self.nb_robots = nb_robots
+        self.nb_honest = nb_honest
         self.robot_speed = robot_speed
         self.robot_radius = robot_radius
         self.robot_communication_radius = comm_radius
@@ -58,7 +59,7 @@ class Environment:
             robot.step()
 
     def create_robots(self):
-        for robot_id in range(self.nb_robots):
+        for robot_id in range(self.nb_honest):
             robot = Agent(robot_id=robot_id,
                           x=randint(self.robot_radius, self.width - 1 - self.robot_radius),
                           y=randint(self.robot_radius, self.height - 1 - self.robot_radius),
@@ -70,7 +71,22 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=HonestBehavior(),
+                          behavior=HonestBehavior(),  # Line that changes
+                          environment=self)
+            self.population.append(robot)
+        for robot_id in range(self.nb_honest, self.nb_robots):
+            robot = Agent(robot_id=robot_id,
+                          x=randint(self.robot_radius, self.width - 1 - self.robot_radius),
+                          y=randint(self.robot_radius, self.height - 1 - self.robot_radius),
+                          speed=self.robot_speed,
+                          radius=self.robot_radius,
+                          noise_mu=self.noise_mu,
+                          noise_musd=self.noise_musd,
+                          noise_sd=self.noise_sd,
+                          initial_reward=self.initial_reward,
+                          fuel_cost=self.fuel_cost,
+                          info_cost=self.info_cost,
+                          behavior=GreedyBehavior(),  # Line that changes
                           environment=self)
             self.population.append(robot)
 
@@ -150,8 +166,8 @@ class Environment:
         img = Image.open("strawberry.png")
         self.img = ImageTk.PhotoImage(img)
         for id, pos in self.foraging_spawns[Location.FOOD].items():
-            canvas.create_image(pos[0]-8, pos[1]-8, image=self.img, anchor='nw')
-            #res = canvas.create_rectangle(pos[0]-4, pos[1]-4, pos[0]+4, pos[1]+4, fill="red")
+            canvas.create_image(pos[0] - 8, pos[1] - 8, image=self.img, anchor='nw')
+            # res = canvas.create_rectangle(pos[0]-4, pos[1]-4, pos[0]+4, pos[1]+4, fill="red")
 
     def draw_best_bot(self, canvas):
         circle = canvas.create_oval(self.population[self.best_bot_id].pos[0] - 4,
@@ -207,4 +223,3 @@ class Environment:
     def pickup_food(self, robot):
         robot.pickup_food()
         self.foraging_spawns[Location.FOOD].pop(robot.id)
-

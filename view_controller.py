@@ -70,7 +70,7 @@ class ViewController:
                                              self.selected_robot.pos[1] - self.selected_robot._radius,
                                              self.selected_robot.pos[0] + self.selected_robot._radius,
                                              self.selected_robot.pos[1] + self.selected_robot._radius,
-                                             outline="red", width=2)
+                                             outline="red", width=3)
 
     def create_bindings(self):
         self.root.bind("<space>", self.switch_animating_state)

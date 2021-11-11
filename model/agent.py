@@ -24,7 +24,7 @@ class AgentAPI:
 
 
 class Agent:
-    colors = {State.EXPLORING: "blue", State.SEEKING_FOOD: "orange", State.SEEKING_NEST: "green"}
+    colors = {State.EXPLORING: "gray35", State.SEEKING_FOOD: "orange", State.SEEKING_NEST: "green"}
 
     def __init__(self, robot_id, x, y, speed, radius,
                  noise_mu, noise_musd, noise_sd, fuel_cost,
@@ -160,9 +160,10 @@ class Agent:
                                     self.pos[1] - self._radius,
                                     self.pos[0] + self._radius,
                                     self.pos[1] + self._radius,
-                                    fill=self.colors[self.behavior.state],
-                                    outline="black")
-        #self.draw_comm_radius(canvas)
+                                    fill=self.behavior.color,
+                                    outline=self.colors[self.behavior.state],
+                                    width=3)
+        self.draw_comm_radius(canvas)
         #self.draw_goal_vector(canvas)
         self.draw_orientation(canvas)
         #self.draw_trace(canvas)

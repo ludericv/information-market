@@ -20,6 +20,9 @@ class Target:
     def is_known(self):
         return self.known
 
+    def get_age(self):
+        return self.age
+
     def set_known(self, known):
         self.known = known
 

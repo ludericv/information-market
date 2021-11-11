@@ -29,7 +29,7 @@ def main_processes():
 def run():
     with open("results_weighteddecaying_expnoise.txt", "a") as file:
         controller = MainController(config_file="config.txt")
-        file.write(controller.get_reward_stats())
+        file.write(controller.get_sorted_reward_stats())
 
 
 if __name__ == '__main__':
