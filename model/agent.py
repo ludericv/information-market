@@ -29,23 +29,29 @@ class Agent:
     def __init__(self, robot_id, x, y, speed, radius,
                  noise_mu, noise_musd, noise_sd, fuel_cost,
                  initial_reward, info_cost, behavior, environment):
+
         self.id = robot_id
         self.pos = np.array([x, y]).astype('float64')
+
         self._speed = speed
         self._radius = radius
+        self._reward = initial_reward
+        self._carries_food = False
+
         self.orientation = random() * 360  # 360 degree angle
         self.noise_mu = gauss(noise_mu, noise_musd)
+        if random() >= 0.5:
+            self.noise_mu = gauss(-noise_mu, noise_musd)
         self.noise_sd = noise_sd
-        self._reward = initial_reward
+
         self.fuel_cost = fuel_cost
         self.info_cost = info_cost
         self.environment = environment
 
-
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
+
         self.behavior = behavior
-        self._carries_food = False
         self.api = AgentAPI(self)
 
     def __str__(self):
@@ -64,7 +70,7 @@ class Agent:
                f"carries food: {self._carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
                f"reward: {round(self._reward, 3)}$\n" \
-               f"dr: {np.round(self.behavior.get_dr(), 2 )}\n"
+               f"dr: {np.round(self.behavior.get_dr(), 2)}\n"
 
     def __repr__(self):
         return f"bot {self.id}"
@@ -164,9 +170,9 @@ class Agent:
                                     outline=self.colors[self.behavior.state],
                                     width=3)
         self.draw_comm_radius(canvas)
-        #self.draw_goal_vector(canvas)
+        # self.draw_goal_vector(canvas)
         self.draw_orientation(canvas)
-        #self.draw_trace(canvas)
+        # self.draw_trace(canvas)
 
     def draw_trace(self, canvas):
         tail = canvas.create_line(*self.trace)
@@ -206,13 +212,6 @@ class Agent:
                                   self.pos[0] + self._radius * cos(radians(self.orientation)),
                                   self.pos[1] + self._radius * sin(radians(self.orientation)),
                                   fill="white")
-
-    # def check_food(self, sensors):
-    #     if self._carries_food and sensors[Location.NEST]:
-    #         self._carries_food = False
-    #         self._reward += 1
-    #     if sensors[Location.FOOD]:
-    #         self._carries_food = True
 
     def speed(self):
         return self._speed

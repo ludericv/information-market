@@ -86,7 +86,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=GreedyBehavior(),  # Line that changes
+                          behavior=SaboteurBehavior(),  # Line that changes
                           environment=self)
             self.population.append(robot)
 
