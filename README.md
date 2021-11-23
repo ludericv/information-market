@@ -15,3 +15,8 @@ python -m venv infomarket-env
 source infomarket-env/bin/activate
 pip install -r requirements.txt
 ```
+## Run
+To run information-market simply use the command
+```
+python __main__.py
+```
