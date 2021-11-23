@@ -2,7 +2,7 @@
 ## Requirements
 To be able to run information-market, you must have:
 - A recent version of Linux, MacOSX or Windows
--**Python** 3.6 or newer
+- **Python** 3.6 or newer
 ## Installation
 First clone the git repository into a given folder on your computer:
 `
