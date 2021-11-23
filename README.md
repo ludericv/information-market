@@ -8,7 +8,7 @@ First clone the git repository into a given folder on your computer:
 ```bash
 git clone https://github.com/ludericv/information-market.git
 ```
-Then, navigate into the newly create folder and create a new python virtual environment:
+Then, navigate into the newly created folder, create a new python virtual environment and install the required python packages:
 ```bash
 cd information-market
 python -m venv infomarket-env
@@ -16,7 +16,7 @@ source infomarket-env/bin/activate
 pip install -r requirements.txt
 ```
 ## Run
-To run information-market simply use the command
+First, edit the config.txt file with the parameters you want to use. Then, to run information-market, simply use the command
 ```
 python __main__.py
 ```
