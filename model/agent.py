@@ -36,6 +36,7 @@ class Agent:
         self._speed = speed
         self._radius = radius
         self._reward = initial_reward
+        self.items_collected = 0
         self._carries_food = False
 
         self.orientation = random() * 360  # 360 degree angle
@@ -233,6 +234,7 @@ class Agent:
 
     def drop_food(self):
         self._carries_food = False
+        self.items_collected += 1
 
     def pickup_food(self):
         self._carries_food = True
