@@ -23,6 +23,9 @@ class Target:
     def get_age(self):
         return self.age
 
+    def get_quality(self):
+        return self.decaying_quality
+
     def set_known(self, known):
         self.known = known
 
@@ -41,9 +44,9 @@ class Target:
         self.relative_distance = rot_mat.dot(self.relative_distance)
 
     def decay_quality(self, decay_rate):
-        self.decaying_quality *= decay_rate
-        # res = self.decaying_quality - decay_rate
-        # self.decaying_quality = res if res > 0 else 0
+        # self.decaying_quality *= decay_rate
+        res = self.decaying_quality - decay_rate
+        self.decaying_quality = res if res > 0 else 0
 
 
 class NavigationTable:
@@ -74,6 +77,9 @@ class NavigationTable:
 
     def get_age(self, location):
         return self.targets[location].age
+
+    def get_quality(self, location):
+        return self.targets[location].decaying_quality
 
     def set_location_age(self, location, age):
         self.targets[location].age = age

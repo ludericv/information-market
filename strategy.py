@@ -91,5 +91,5 @@ class WeightedDecayingQualityStrategy(DecayingQualityStrategy):
         if not my_target.is_known():
             new_distance = other_target.get_distance() + bots_distance
         new_target.set_distance(new_distance)
-        new_target.decaying_quality = (other_target.decaying_quality + my_target.decaying_quality) / 2
+        new_target.decaying_quality = other_target.decaying_quality
         return new_target

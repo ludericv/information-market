@@ -7,7 +7,8 @@ import numpy as np
 
 from model.communication import CommunicationSession
 from model.navigation import Location, NavigationTable
-from strategy import BetterAgeStrategy, WeightedAverageAgeStrategy
+from strategy import BetterAgeStrategy, WeightedAverageAgeStrategy, DecayingQualityStrategy, \
+    WeightedDecayingQualityStrategy
 from utils import get_orientation_from_vector, norm, InsufficientFundsException
 
 
@@ -47,15 +48,17 @@ class HonestBehavior(Behavior):
     def __init__(self):
         super().__init__()
         self.state = State.EXPLORING
-        self.strategy = WeightedAverageAgeStrategy()
+        self.strategy = WeightedDecayingQualityStrategy()
 
     def communicate(self, session: CommunicationSession):
         for location in Location:
             ages = session.get_ages(location)
+            qualities = session.get_qualities(location)
             known_locations = session.are_locations_known(location)
             ages_sorted = sorted([(age, index) for index, (age, is_known) in enumerate(zip(ages, known_locations)) if is_known])
-            for age, index in ages_sorted:
-                if age < self.navigation_table.get_age(location) - 10:
+            q_sorted = sorted([(quality, index) for index, (quality, is_known) in enumerate(zip(qualities, known_locations)) if is_known])
+            for q, index in q_sorted:
+                if q > self.navigation_table.get_quality(location):
                     try:
                         other_target = session.make_transaction(neighbor_index=index, location=location)
                         new_target = self.strategy.combine(self.navigation_table.get_target(location),
@@ -71,7 +74,7 @@ class HonestBehavior(Behavior):
         self.update_behavior(sensors, api)
         self.update_movement_based_on_state(api)
         self.check_movement_with_sensors(sensors, api)
-        self.update_nav_table_based_on_dr()
+        self.update_nav_table_based_on_dr(api)
 
     def update_behavior(self, sensors, api):
         for location in Location:
@@ -141,9 +144,10 @@ class HonestBehavior(Behavior):
         if (sensors["RIGHT"] and self.dr[1] <= 0) or (sensors["LEFT"] and self.dr[1] >= 0):
             self.dr[1] = -self.dr[1]
 
-    def update_nav_table_based_on_dr(self):
+    def update_nav_table_based_on_dr(self, api):
         self.navigation_table.update_from_movement(self.dr)
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
+        self.navigation_table.decay_qualities(0.01*abs(api.get_mu))
 
 
 class SaboteurBehavior(HonestBehavior):

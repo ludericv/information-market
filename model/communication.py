@@ -13,6 +13,9 @@ class CommunicationSession:
     def get_ages(self, location: Location):
         return [n.get_target_from_behavior(location).get_age() for n in self._neighbors]
 
+    def get_qualities(self, location: Location):
+        return [n.get_target_from_behavior(location).get_quality() for n in self._neighbors]
+
     def are_locations_known(self, location: Location):
         return [n.get_target_from_behavior(location).is_known() for n in self._neighbors]
 
