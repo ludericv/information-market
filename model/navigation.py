@@ -23,6 +23,9 @@ class Target:
     def get_age(self):
         return self.age
 
+    def set_age(self, age):
+        self.age = age
+
     def set_known(self, known):
         self.known = known
 

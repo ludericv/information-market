@@ -1,7 +1,7 @@
 from math import cos, sin, radians
 from PIL import Image, ImageTk
 from model.agent import Agent
-from model.behavior import HonestBehavior, SaboteurBehavior, GreedyBehavior
+from model.behavior import HonestBehavior, SaboteurBehavior, GreedyBehavior, CarefulBehavior
 from model.navigation import Location
 from utils import norm, distance_between
 from random import randint, random
@@ -71,7 +71,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=HonestBehavior(),  # Line that changes
+                          behavior=CarefulBehavior(security_level=3),  # Line that changes
                           environment=self)
             self.population.append(robot)
         for robot_id in range(self.nb_honest, self.nb_robots):

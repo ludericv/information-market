@@ -71,7 +71,8 @@ class Agent:
                f"carries food: {self._carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
                f"reward: {round(self._reward, 3)}$\n" \
-               f"dr: {np.round(self.behavior.get_dr(), 2)}\n"
+               f"dr: {np.round(self.behavior.get_dr(), 2)}\n" \
+               f"{self.behavior.debug_text()}"
 
     def __repr__(self):
         return f"bot {self.id}"

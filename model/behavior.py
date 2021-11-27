@@ -6,7 +6,7 @@ from math import cos, radians, sin
 import numpy as np
 
 from model.communication import CommunicationSession
-from model.navigation import Location, NavigationTable
+from model.navigation import Location, NavigationTable, Target
 from strategy import BetterAgeStrategy, WeightedAverageAgeStrategy
 from utils import get_orientation_from_vector, norm, InsufficientFundsException
 
@@ -51,16 +51,15 @@ class HonestBehavior(Behavior):
 
     def communicate(self, session: CommunicationSession):
         for location in Location:
-            ages = session.get_ages(location)
-            known_locations = session.are_locations_known(location)
-            ages_sorted = sorted([(age, index) for index, (age, is_known) in enumerate(zip(ages, known_locations)) if is_known])
-            for age, index in ages_sorted:
-                if age < self.navigation_table.get_age(location) - 10:
+            metadata = session.get_metadata(location)
+            metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
+            for bot_id, data in metadata_sorted_by_age:
+                if data["age"] < self.navigation_table.get_age(location) - 10:
                     try:
-                        other_target = session.make_transaction(neighbor_index=index, location=location)
+                        other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         new_target = self.strategy.combine(self.navigation_table.get_target(location),
                                                            other_target,
-                                                           session.get_distance_from(index))
+                                                           session.get_distance_from(bot_id))
                         self.navigation_table.replace_target(location, new_target)
                         break
                     except InsufficientFundsException:
@@ -144,6 +143,55 @@ class HonestBehavior(Behavior):
     def update_nav_table_based_on_dr(self):
         self.navigation_table.update_from_movement(self.dr)
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
+
+
+class CarefulBehavior(HonestBehavior):
+    def __init__(self, security_level=4):
+        super(CarefulBehavior, self).__init__()
+        self.color = "lightblue"
+        self.security_level = security_level
+        self.pending_information = {location: {} for location in Location}
+
+    def communicate(self, session: CommunicationSession):
+        for location in Location:
+            metadata = session.get_metadata(location)
+            metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
+            for bot_id, data in metadata_sorted_by_age:
+                if data["age"] < self.navigation_table.get_age(location) - 10 and bot_id not in self.pending_information[location]:
+                    try:
+                        other_target = session.make_transaction(neighbor_id=bot_id, location=location)
+                        other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))
+                        if not self.navigation_table.is_location_known(location):
+                            self.navigation_table.replace_target(location, other_target)
+                        else:
+                            self.pending_information[location][bot_id] = other_target
+                            if len(self.pending_information[location]) >= self.security_level:
+                                self.combine_pending_information(location)
+                    except InsufficientFundsException:
+                        pass
+
+    def combine_pending_information(self, location):
+        distances = [t.get_distance() for t in self.pending_information[location].values()]
+        mean_distance = np.mean(distances, axis=0)
+        best_target = min(self.pending_information[location].values(), key=lambda t: norm(t.get_distance()-mean_distance))
+        print(best_target.get_distance())
+        self.navigation_table.replace_target(location, best_target)
+        self.pending_information[location].clear()
+
+    def step(self, sensors, api):
+        super().step(sensors, api)
+        self.update_pending_information()
+
+    def update_pending_information(self):
+        for location in Location:
+            for target in self.pending_information[location].values():
+                target.update(self.dr)
+                target.rotate(-get_orientation_from_vector(self.dr))
+
+    def debug_text(self):
+        return f"size of pending: {[len(self.pending_information[l]) for l in Location]}\n" \
+               f"{self.pending_information[Location.FOOD]}\n" \
+               f"{self.pending_information[Location.NEST]}"
 
 
 class SaboteurBehavior(HonestBehavior):
