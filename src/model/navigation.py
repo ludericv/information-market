@@ -1,5 +1,5 @@
 from enum import Enum
-from utils import rotation_matrix
+from src.utils import rotation_matrix
 import numpy as np
 
 

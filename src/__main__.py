@@ -1,9 +1,9 @@
-from main_controller import MainController
+from src.main_controller import MainController
 from multiprocessing import Process, cpu_count
 
 
 def main():
-    controller = MainController(config_file="config.txt")
+    controller = MainController(config_file="../config/config.txt")
 
 
 def main_processes():
@@ -27,8 +27,8 @@ def main_processes():
 
 
 def run():
-    with open("results_weighteddecaying_expnoise.txt", "a") as file:
-        controller = MainController(config_file="config.txt")
+    with open("../data/results_weighteddecaying_expnoise.txt", "a") as file:
+        controller = MainController(config_file="../config/config.txt")
         file.write(controller.get_sorted_reward_stats())
 
 

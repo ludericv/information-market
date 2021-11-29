@@ -1,8 +1,7 @@
-import time
-import random_walk
+from src import random_walk
 
-from model.environment import Environment
-from view_controller import ViewController
+from src.model.environment import Environment
+from src.view_controller import ViewController
 
 
 class MainController:

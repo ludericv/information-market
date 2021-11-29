@@ -1,7 +1,7 @@
 import copy
 
-from model.navigation import Location, Target
-from utils import rotate
+from src.model.navigation import Location, Target
+from src.utils import rotate
 
 
 class CommunicationSession:
