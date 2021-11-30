@@ -7,7 +7,7 @@ def main():
 
 
 def main_processes():
-    NB_RUNS = 4
+    NB_RUNS = 64
     N_CORES = cpu_count()
 
     process_table = [Process(target=run) for i in range(NB_RUNS)]
@@ -27,11 +27,11 @@ def main_processes():
 
 
 def run():
-    with open("../data/results_weighteddecaying_expnoise.txt", "a") as file:
-        controller = MainController(config_file="../config/config.txt")
-        file.write(controller.get_sorted_reward_stats())
+    controller = MainController(config_file="../config/config.txt")
+    filename = "25honest.txt"
+    with open(f"../data/behaviors/rewards/{filename}", "a") as file:
+        file.write(controller.get_reward_stats())
 
 
 if __name__ == '__main__':
-    # main_processes()
     main()
