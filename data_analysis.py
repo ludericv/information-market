@@ -35,11 +35,12 @@ def compare_strats():
     strats = ["age", "w-age", "lin", "w-lin", "exp", "w-exp"]
     mu_folders = ["low_0", "med_05", "high_10"]
     sd_folders = ["low_01", "high_10"]
-    d = {"mu": mu_folders, "sd": sd_folders}
+    popsize_folders = {"low_10", "high_50"}
+    d = {"mu": mu_folders, "sd": sd_folders, "popsize": popsize_folders}
     for f1 in d:
         for f2 in d[f1]:
             fig, axs = plt.subplots(1, len(strats), sharey=True)
-            fig.set_size_inches(12, 6)
+            fig.set_size_inches(16, 6)
             fig.suptitle(f"{f1}: {f2}")
             for i, s in enumerate(strats):
                 df = pd.read_csv(f"data/quality_comp/{f1}/{f2}/{s}.txt").values.flatten()
