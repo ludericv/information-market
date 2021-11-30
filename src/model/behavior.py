@@ -5,10 +5,10 @@ from math import cos, radians, sin
 
 import numpy as np
 
-from model.communication import CommunicationSession
-from model.navigation import Location, NavigationTable, Target
-from strategy import BetterAgeStrategy, WeightedAverageAgeStrategy
-from utils import get_orientation_from_vector, norm, InsufficientFundsException
+from src.model.communication import CommunicationSession
+from src.model.navigation import Location, NavigationTable
+from src.strategy import WeightedAverageAgeStrategy
+from src.utils import get_orientation_from_vector, norm, InsufficientFundsException
 
 
 class State(Enum):
@@ -146,9 +146,9 @@ class HonestBehavior(Behavior):
 
 
 class CarefulBehavior(HonestBehavior):
-    def __init__(self, security_level=4):
+    def __init__(self, security_level=3):
         super(CarefulBehavior, self).__init__()
-        self.color = "lightblue"
+        self.color = "deep sky blue"
         self.security_level = security_level
         self.pending_information = {location: {} for location in Location}
 

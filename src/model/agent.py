@@ -1,16 +1,16 @@
 import copy
-import random_walk as rw
+from src import random_walk as rw
 from random import random, choices, gauss
 from math import sin, cos, radians
 from tkinter import LAST
 from collections import deque
 
-from model.behavior import State
-from model.communication import CommunicationSession
-from model.navigation import Location
+from src.model.behavior import State
+from src.model.communication import CommunicationSession
+from src.model.navigation import Location
 import numpy as np
 
-from utils import get_orientation_from_vector, rotate, InsufficientFundsException
+from src.utils import get_orientation_from_vector, rotate, InsufficientFundsException
 
 
 class AgentAPI:

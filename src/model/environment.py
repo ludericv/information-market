@@ -1,9 +1,9 @@
 from math import cos, sin, radians
 from PIL import Image, ImageTk
-from model.agent import Agent
-from model.behavior import HonestBehavior, SaboteurBehavior, GreedyBehavior, CarefulBehavior
-from model.navigation import Location
-from utils import norm, distance_between
+from src.model.agent import Agent
+from src.model.behavior import SaboteurBehavior, CarefulBehavior, HonestBehavior
+from src.model.navigation import Location
+from src.utils import norm, distance_between
 from random import randint, random
 import numpy as np
 
@@ -71,7 +71,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=CarefulBehavior(security_level=3),  # Line that changes
+                          behavior=HonestBehavior(),  # Line that changes
                           environment=self)
             self.population.append(robot)
         for robot_id in range(self.nb_honest, self.nb_robots):
@@ -163,7 +163,7 @@ class Environment:
         return best_bot_id
 
     def draw_strawberries(self, canvas):
-        img = Image.open("strawberry.png")
+        img = Image.open("../assets/strawberry.png")
         self.img = ImageTk.PhotoImage(img)
         for id, pos in self.foraging_spawns[Location.FOOD].items():
             canvas.create_image(pos[0] - 8, pos[1] - 8, image=self.img, anchor='nw')

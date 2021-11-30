@@ -4,15 +4,15 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    dec_const = pd.read_csv("results_decaying_constant.txt", header=None).values.flatten()
-    w_dec_const = pd.read_csv("results_weighteddecaying_constant.txt", header=None).values.flatten()
-    better = pd.read_csv("results_betterage.txt", header=None).values.flatten()
-    w_better = pd.read_csv("results_weightedbetterage.txt", header=None).values.flatten()
-    dec_lin = pd.read_csv("results_decaying_linearnoise.txt", header=None).values.flatten()
-    w_dec_lin = pd.read_csv("results_weighteddecaying_linearnoise.txt", header=None).values.flatten()
-    dec_exp = pd.read_csv("results_decaying_expnoise.txt", header=None).values.flatten()
-    w_dec_exp = pd.read_csv("results_weighteddecaying_expnoise.txt", header=None).values.flatten()
-    dec_exp_const = pd.read_csv("results_decaying_expconst.txt", header=None).values.flatten()
+    dec_const = pd.read_csv("../data/old_data/results_decaying_constant.txt", header=None).values.flatten()
+    w_dec_const = pd.read_csv("../data/old_data/results_weighteddecaying_constant.txt", header=None).values.flatten()
+    better = pd.read_csv("../data/old_data/results_betterage.txt", header=None).values.flatten()
+    w_better = pd.read_csv("../data/old_data/results_weightedbetterage.txt", header=None).values.flatten()
+    dec_lin = pd.read_csv("../data/old_data/results_decaying_linearnoise.txt", header=None).values.flatten()
+    w_dec_lin = pd.read_csv("../data/old_data/results_weighteddecaying_linearnoise.txt", header=None).values.flatten()
+    dec_exp = pd.read_csv("../data/old_data/results_decaying_expnoise.txt", header=None).values.flatten()
+    w_dec_exp = pd.read_csv("../data/old_data/results_weighteddecaying_expnoise.txt", header=None).values.flatten()
+    dec_exp_const = pd.read_csv("../data/old_data/results_decaying_expconst.txt", header=None).values.flatten()
     # print(dec_const.mean(axis=1).mean())
     # print(better.mean(axis=1).mean())
     # print(dec_lin.mean(axis=1).mean())
@@ -31,7 +31,7 @@ def main():
 
 
 def main2():
-    df = pd.read_csv("data_sorted.txt", header=None)
+    df = pd.read_csv("../data/old_data/data_sorted.txt", header=None)
     plt.plot(df.apply(np.mean, axis=0))
     plt.show()
 
