@@ -174,7 +174,6 @@ class CarefulBehavior(HonestBehavior):
         distances = [t.get_distance() for t in self.pending_information[location].values()]
         mean_distance = np.mean(distances, axis=0)
         best_target = min(self.pending_information[location].values(), key=lambda t: norm(t.get_distance()-mean_distance))
-        print(best_target.get_distance())
         self.navigation_table.replace_target(location, best_target)
         self.pending_information[location].clear()
 

@@ -1,3 +1,5 @@
+import os
+
 from src.main_controller import MainController
 from multiprocessing import Process, cpu_count
 
@@ -7,7 +9,7 @@ def main():
 
 
 def main_processes():
-    NB_RUNS = 64
+    NB_RUNS = 128
     N_CORES = cpu_count()
 
     process_table = [Process(target=run) for i in range(NB_RUNS)]
@@ -28,10 +30,13 @@ def main_processes():
 
 def run():
     controller = MainController(config_file="../config/config.txt")
-    filename = "25honest.txt"
+    filename = "24careful_s3_1greedy.txt"
     with open(f"../data/behaviors/rewards/{filename}", "a") as file:
         file.write(controller.get_reward_stats())
+    with open(f"../data/behaviors/items_collected/{filename}", "a") as file:
+        file.write(controller.get_items_collected_stats())
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    main_processes()

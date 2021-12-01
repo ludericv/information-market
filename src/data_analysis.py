@@ -35,5 +35,10 @@ def main2():
     plt.plot(df.apply(np.mean, axis=0))
     plt.show()
 
+
+def compare_behaviors():
+    pass
+
+
 if __name__ == '__main__':
     main2()
