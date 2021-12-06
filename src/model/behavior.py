@@ -70,7 +70,7 @@ class HonestBehavior(Behavior):
         self.update_behavior(sensors, api)
         self.update_movement_based_on_state(api)
         self.check_movement_with_sensors(sensors, api)
-        self.update_nav_table_based_on_dr()
+        self.update_nav_table_based_on_dr(api)
 
     def update_behavior(self, sensors, api):
         for location in Location:
@@ -140,9 +140,10 @@ class HonestBehavior(Behavior):
         if (sensors["RIGHT"] and self.dr[1] <= 0) or (sensors["LEFT"] and self.dr[1] >= 0):
             self.dr[1] = -self.dr[1]
 
-    def update_nav_table_based_on_dr(self):
+    def update_nav_table_based_on_dr(self, api):
         self.navigation_table.update_from_movement(self.dr)
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
+        self.navigation_table.decay_qualities(1-0.01*abs(api.get_mu))
 
 
 class CarefulBehavior(HonestBehavior):

@@ -21,6 +21,7 @@ class AgentAPI:
         self.reward = agent.reward
         self.get_vector = agent.get_vector
         self.get_levi_turn_angle = agent.get_levi_turn_angle
+        self.get_mu = agent.noise_mu
 
 
 class Agent:
@@ -42,7 +43,7 @@ class Agent:
         self.orientation = random() * 360  # 360 degree angle
         self.noise_mu = gauss(noise_mu, noise_musd)
         if random() >= 0.5:
-            self.noise_mu = gauss(-noise_mu, noise_musd)
+            self.noise_mu = -self.noise_mu
         self.noise_sd = noise_sd
 
         self.fuel_cost = fuel_cost

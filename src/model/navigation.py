@@ -26,6 +26,9 @@ class Target:
     def set_age(self, age):
         self.age = age
 
+    def get_quality(self):
+        return self.decaying_quality
+
     def set_known(self, known):
         self.known = known
 
@@ -77,6 +80,9 @@ class NavigationTable:
 
     def get_age(self, location):
         return self.targets[location].age
+
+    def get_quality(self, location):
+        return self.targets[location].decaying_quality
 
     def set_location_age(self, location, age):
         self.targets[location].age = age
