@@ -38,5 +38,5 @@ def run():
 
 
 if __name__ == '__main__':
-    # main()
-    main_processes()
+    main()
+    # main_processes()

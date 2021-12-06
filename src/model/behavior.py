@@ -157,7 +157,7 @@ class CarefulBehavior(HonestBehavior):
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age(location) - 10 and bot_id not in self.pending_information[location]:
+                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[location]:  # TODO: check -10
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))
