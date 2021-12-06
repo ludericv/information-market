@@ -62,8 +62,8 @@ class ViewController:
         self.canvas.delete("all")
 
         self.controller.environment.draw(self.canvas)
-        self.canvas.create_text(50, 10, fill="black",
-                                text=f"{round(self.fps)} FPS - step {self.controller.tick}")
+        self.canvas.create_text(10, 10, fill="black",
+                                text=f"{round(self.fps)} FPS - step {self.controller.tick}", anchor="nw")
 
         if self.selected_robot is not None:
             circle = self.canvas.create_oval(self.selected_robot.pos[0] - self.selected_robot._radius,
