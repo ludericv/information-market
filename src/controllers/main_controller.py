@@ -1,7 +1,7 @@
-from src import random_walk
+from helpers import random_walk
 
 from src.model.environment import Environment
-from src.view_controller import ViewController
+from controllers.view_controller import ViewController
 
 
 class MainController:

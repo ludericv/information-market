@@ -1,9 +1,9 @@
 from math import cos, sin, radians
 from PIL import Image, ImageTk
 from src.model.agent import Agent
-from src.model.behavior import SaboteurBehavior, CarefulBehavior, HonestBehavior, GreedyBehavior
+from src.model.behavior import SaboteurBehavior, CarefulBehavior
 from src.model.navigation import Location
-from src.utils import norm, distance_between
+from helpers.utils import norm, distance_between
 from random import randint, random
 import numpy as np
 

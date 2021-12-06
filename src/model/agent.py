@@ -1,5 +1,5 @@
 import copy
-from src import random_walk as rw
+from helpers import random_walk as rw
 from random import random, choices, gauss
 from math import sin, cos, radians
 from tkinter import LAST
@@ -10,7 +10,7 @@ from src.model.communication import CommunicationSession
 from src.model.navigation import Location
 import numpy as np
 
-from src.utils import get_orientation_from_vector, rotate, InsufficientFundsException
+from helpers.utils import get_orientation_from_vector, rotate, InsufficientFundsException
 
 
 class AgentAPI:

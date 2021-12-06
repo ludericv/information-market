@@ -7,8 +7,8 @@ import numpy as np
 
 from src.model.communication import CommunicationSession
 from src.model.navigation import Location, NavigationTable
-from src.strategy import WeightedAverageAgeStrategy
-from src.utils import get_orientation_from_vector, norm, InsufficientFundsException
+from model.strategy import WeightedAverageAgeStrategy
+from helpers.utils import get_orientation_from_vector, norm, InsufficientFundsException
 
 
 class State(Enum):

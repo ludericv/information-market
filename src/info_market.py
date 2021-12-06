@@ -1,6 +1,4 @@
-import os
-
-from src.main_controller import MainController
+from controllers.main_controller import MainController
 from multiprocessing import Process, cpu_count
 
 
