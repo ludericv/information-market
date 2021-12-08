@@ -56,10 +56,12 @@ def compare_strats():
 
 
 def compare_behaviors():
-    filenames = ["25honest", "24honest_1saboteur", "24careful_s3_1saboteur"]
-    items_collected_plot(filenames)
-    rewards_plot(filenames)
-    honest_vs_careful()
+    filenames = ["25honest", "24honest_1saboteur", "24careful_s3_1saboteur", "24careful_s3_1greedy"]
+    # items_collected_plot(filenames)
+    # rewards_plot(filenames)
+    # honest_vs_careful()
+    # rewards_per_run("24honest_1saboteur")
+    show_run_difference("24honest_1saboteur")
 
 
 def honest_vs_careful():
@@ -71,8 +73,8 @@ def honest_vs_careful():
     cdiff = cdf.iloc[:, :24].apply(np.mean, axis=1) - cdf.iloc[:, 24]
     fig, axs = plt.subplots()
     axs.set_title("Reward Difference with Saboteur")
-    hist(hdiff.values.flatten(), 1.5)
-    hist(cdiff.values.flatten(), 1.5)
+    line_hist(hdiff.values.flatten(), 1.5)
+    line_hist(cdiff.values.flatten(), 1.5)
     axs.legend(["honest", "careful"])
     plt.show()
 
@@ -82,7 +84,7 @@ def items_collected_plot(filenames):
     for filename in filenames:
         collected = pd.read_csv(f"../data/behaviors/items_collected/{filename}.txt", header=None)
         n_honest = int(re.search('[0-9]+', filename).group())
-        hist(collected.iloc[:, :n_honest].values.flatten(), 1)
+        line_hist(collected.iloc[:, :n_honest].values.flatten(), 1)
     axs.legend(filenames)
     axs.set_title("Items Collected Distribution")
     plt.show()
@@ -93,18 +95,43 @@ def rewards_plot(filenames):
     for filename in filenames:
         rewards = pd.read_csv(f"../data/behaviors/rewards/{filename}.txt", header=None)
         n_honest = int(re.search('[0-9]+', filename).group())
-        hist(rewards.iloc[:, :n_honest].values.flatten(), 1)
+        line_hist(rewards.iloc[:, :n_honest].values.flatten(), 1)
     axs.legend(filenames)
     axs.set_title("Honest Rewards Distribution")
     plt.show()
 
 
-def hist(values, precision):
+def show_run_difference(filename):
+    df = pd.read_csv(f"../data/behaviors/rewards/{filename}.txt", header=None)
+    n_honest = int(re.search('[0-9]+', filename).group())
+    fig, axs = plt.subplots()
+    print(df.iloc[:, :n_honest])
+    means = df.iloc[:, :n_honest].apply(np.mean, axis=1)
+    stds = df.iloc[:, :n_honest].apply(np.std, axis=1)
+    means_and_stds = pd.concat([means, stds], axis=1, keys=['mean', 'sd'])
+    means_and_stds = means_and_stds.sort_values(by='mean')
+    print(means_and_stds['mean'])
+    plt.errorbar(range(means_and_stds.shape[0]), means_and_stds['mean'], means_and_stds['sd'], linestyle='None', marker='^')
+    plt.show()
+
+
+def rewards_per_run(filename):
+    df = pd.read_csv(f"../data/behaviors/rewards/{filename}.txt", header=None)
+    n_honest = int(re.search('[0-9]+', filename).group())
+    fig, axs = plt.subplots()
+    for row in range(df.shape[0]):
+        values = df.iloc[row, :n_honest].values.flatten()
+        bins = np.arange(np.floor(np.min(values)), np.ceil(np.max(values)), 1)
+        # plt.hist(values, bins=bins, fc=(1, 0, 0, 0.1))
+        line_hist(values, 1, 0.1, color=(1, 0, 0, 0.1))
+    plt.show()
+
+
+def line_hist(values, precision, alpha=1.0, color=None):
     bins = np.arange(np.floor(np.min(values)), np.ceil(np.max(values)), precision)
     n, bins = np.histogram(values, bins=bins, density=True)
-    plt.plot(bins[:-1], n)
+    plt.plot(bins[:-1], n, alpha=alpha, c=color)
 
 
 if __name__ == '__main__':
-    main()
     compare_behaviors()
