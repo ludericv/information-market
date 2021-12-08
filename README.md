@@ -1,4 +1,4 @@
-# information-market
+# Master's Thesis: An Information Market for Social Navigation in Robots
 ## Requirements
 To be able to run information-market, you must have:
 - A recent version of Linux, MacOSX or Windows
@@ -16,7 +16,8 @@ source infomarket-env/bin/activate
 pip install -r requirements.txt
 ```
 ## Run
-First, edit the config.txt file with the parameters you want to use. Then, to run information-market, simply use the command
-```
-python __main__.py
+First, edit the _config.txt_ file inside the config folder with the parameters you want to use. Then, to run information-market, simply open a terminal, cd to the src folder and run the program.
+```bash
+cd path/to/src
+python info_market.py
 ```

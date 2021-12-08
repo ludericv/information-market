@@ -1,16 +1,16 @@
 import copy
-import random_walk as rw
+from helpers import random_walk as rw
 from random import random, choices, gauss
 from math import sin, cos, radians
 from tkinter import LAST
 from collections import deque
 
-from model.behavior import State
-from model.communication import CommunicationSession
-from model.navigation import Location
+from src.model.behavior import State
+from src.model.communication import CommunicationSession
+from src.model.navigation import Location
 import numpy as np
 
-from utils import get_orientation_from_vector, rotate, InsufficientFundsException
+from helpers.utils import get_orientation_from_vector, rotate, InsufficientFundsException
 
 
 class AgentAPI:
@@ -37,6 +37,7 @@ class Agent:
         self._speed = speed
         self._radius = radius
         self._reward = initial_reward
+        self.items_collected = 0
         self._carries_food = False
 
         self.orientation = random() * 360  # 360 degree angle
@@ -71,7 +72,8 @@ class Agent:
                f"carries food: {self._carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
                f"reward: {round(self._reward, 3)}$\n" \
-               f"dr: {np.round(self.behavior.get_dr(), 2)}\n"
+               f"dr: {np.round(self.behavior.get_dr(), 2)}\n" \
+               f"{self.behavior.debug_text()}"
 
     def __repr__(self):
         return f"bot {self.id}"
@@ -234,6 +236,7 @@ class Agent:
 
     def drop_food(self):
         self._carries_food = False
+        self.items_collected += 1
 
     def pickup_food(self):
         self._carries_food = True

@@ -1,8 +1,7 @@
-import time
-import random_walk
+from helpers import random_walk
 
-from model.environment import Environment
-from view_controller import ViewController
+from src.model.environment import Environment
+from controllers.view_controller import ViewController
 
 
 class MainController:
@@ -83,6 +82,14 @@ class MainController:
         res = ""
         for bot in self.environment.population:
             res += str(bot.reward()) + ","
+        res = res[:-1]  # remove last comma
+        res += "\n"
+        return res
+
+    def get_items_collected_stats(self):
+        res = ""
+        for bot in self.environment.population:
+            res += str(bot.items_collected) + ","
         res = res[:-1]  # remove last comma
         res += "\n"
         return res

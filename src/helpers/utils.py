@@ -1,4 +1,4 @@
-from math import atan2, pi, radians, cos
+from math import atan2, pi, radians
 import numpy as np
 
 

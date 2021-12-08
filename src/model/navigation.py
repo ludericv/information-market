@@ -1,5 +1,5 @@
 from enum import Enum
-from utils import rotation_matrix
+from helpers.utils import rotation_matrix
 import numpy as np
 
 
@@ -22,6 +22,9 @@ class Target:
 
     def get_age(self):
         return self.age
+
+    def set_age(self, age):
+        self.age = age
 
     def get_quality(self):
         return self.decaying_quality
