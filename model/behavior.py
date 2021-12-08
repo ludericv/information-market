@@ -48,7 +48,7 @@ class HonestBehavior(Behavior):
     def __init__(self):
         super().__init__()
         self.state = State.EXPLORING
-        self.strategy = DecayingQualityStrategy()
+        self.strategy = WeightedAverageAgeStrategy()
 
     def communicate(self, session: CommunicationSession):
         for location in Location:
@@ -57,8 +57,8 @@ class HonestBehavior(Behavior):
             known_locations = session.are_locations_known(location)
             ages_sorted = sorted([(age, index) for index, (age, is_known) in enumerate(zip(ages, known_locations)) if is_known])
             q_sorted = sorted([(quality, index) for index, (quality, is_known) in enumerate(zip(qualities, known_locations)) if is_known])
-            for q, index in q_sorted:
-                if q > self.navigation_table.get_quality(location):
+            for age, index in ages_sorted:
+                if age < self.navigation_table.get_age(location):
                     try:
                         other_target = session.make_transaction(neighbor_index=index, location=location)
                         new_target = self.strategy.combine(self.navigation_table.get_target(location),
@@ -147,7 +147,7 @@ class HonestBehavior(Behavior):
     def update_nav_table_based_on_dr(self, api):
         self.navigation_table.update_from_movement(self.dr)
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
-        self.navigation_table.decay_qualities(1-0.01*abs(api.get_mu))
+        self.navigation_table.decay_qualities(0.01*abs(api.get_mu))
 
 
 class SaboteurBehavior(HonestBehavior):

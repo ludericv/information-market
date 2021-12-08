@@ -27,8 +27,12 @@ def main_processes():
 
 
 def run():
-    with open("data/quality_comp/popsize/high_50/exp.txt", "a") as file:
-        controller = MainController(config_file="config.txt")
+    type = "w-age"
+    with open(f"data/quality_comp/popsize/low_10/{type}.txt", "a") as file:
+        controller = MainController(config_file="config10.txt")
+        file.write(controller.get_sorted_reward_stats())
+    with open(f"data/quality_comp/popsize/high_50/{type}.txt", "a") as file:
+        controller = MainController(config_file="config50.txt")
         file.write(controller.get_sorted_reward_stats())
 
 
