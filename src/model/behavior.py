@@ -194,6 +194,31 @@ class CarefulBehavior(HonestBehavior):
                f"{self.pending_information[Location.NEST]}"
 
 
+class CarefulBehaviorV2(CarefulBehavior):
+    def __init__(self, security_level=3):
+        super(CarefulBehaviorV2, self).__init__(security_level)
+
+    def communicate(self, session: CommunicationSession):
+        for location in Location:
+            metadata = session.get_metadata(location)
+            metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
+            for bot_id, data in metadata_sorted_by_age:
+                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[location]:
+                    try:
+                        other_target = session.make_transaction(neighbor_id=bot_id, location=location)
+                        other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))
+                        if not self.navigation_table.is_location_known(location):
+                            self.navigation_table.replace_target(location, other_target)
+                        elif len(self.pending_information[location]) == 0:
+                            prod = self.navigation_table.get_location_vector(location).dot(other_target)
+                        else:
+                            self.pending_information[location][bot_id] = other_target
+                            if len(self.pending_information[location]) >= self.security_level:
+                                self.combine_pending_information(location)
+                    except InsufficientFundsException:
+                        pass
+
+
 class SaboteurBehavior(HonestBehavior):
     def __init__(self):
         super().__init__()

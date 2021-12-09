@@ -57,11 +57,11 @@ def compare_strats():
 
 def compare_behaviors():
     filenames = ["25honest", "24honest_1saboteur", "24careful_s3_1saboteur", "24careful_s3_1greedy"]
-    # items_collected_plot(filenames)
-    # rewards_plot(filenames)
-    # honest_vs_careful()
+    items_collected_plot(filenames)
+    rewards_plot(filenames)
+    honest_vs_careful()
     # rewards_per_run("24honest_1saboteur")
-    show_run_difference("24honest_1saboteur")
+    show_run_difference(filenames)
 
 
 def honest_vs_careful():
@@ -101,18 +101,26 @@ def rewards_plot(filenames):
     plt.show()
 
 
-def show_run_difference(filename):
-    df = pd.read_csv(f"../data/behaviors/rewards/{filename}.txt", header=None)
-    n_honest = int(re.search('[0-9]+', filename).group())
-    fig, axs = plt.subplots()
-    print(df.iloc[:, :n_honest])
-    means = df.iloc[:, :n_honest].apply(np.mean, axis=1)
-    stds = df.iloc[:, :n_honest].apply(np.std, axis=1)
-    means_and_stds = pd.concat([means, stds], axis=1, keys=['mean', 'sd'])
-    means_and_stds = means_and_stds.sort_values(by='mean')
-    print(means_and_stds['mean'])
-    plt.errorbar(range(means_and_stds.shape[0]), means_and_stds['mean'], means_and_stds['sd'], linestyle='None', marker='^')
-    plt.show()
+def show_run_difference(filenames):
+    for filename in filenames:
+        df = pd.read_csv(f"../data/behaviors/rewards/{filename}.txt", header=None)
+        n_honest = int(re.search('[0-9]+', filename).group())
+        n_bad = 25-n_honest
+        fig, axs = plt.subplots()
+        axs.set_title(filename)
+        axs.set_ylabel("reward")
+        axs.set_xlabel("run")
+        print(df.iloc[:, :n_honest])
+        means = df.iloc[:, :n_honest].apply(np.mean, axis=1)
+        means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1)
+        stds = df.iloc[:, :n_honest].apply(np.std, axis=1)
+        stds_bad = df.iloc[:, -n_bad:].apply(np.std, axis=1)
+        res = pd.concat([means, stds, means_bad, stds_bad], axis=1, keys=['mean', 'sd', 'mean_b', 'sd_b'])
+        res = res.sort_values(by='mean')
+        print(res['mean'])
+        plt.errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
+        plt.errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^', c=(1,0,0,1))
+        plt.show()
 
 
 def rewards_per_run(filename):
@@ -123,7 +131,7 @@ def rewards_per_run(filename):
         values = df.iloc[row, :n_honest].values.flatten()
         bins = np.arange(np.floor(np.min(values)), np.ceil(np.max(values)), 1)
         # plt.hist(values, bins=bins, fc=(1, 0, 0, 0.1))
-        line_hist(values, 1, 0.1, color=(1, 0, 0, 0.1))
+        line_hist(values, 1, 0.1, color=(0.5, 0, 0, 0.1))
     plt.show()
 
 
