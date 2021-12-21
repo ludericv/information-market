@@ -158,7 +158,7 @@ class CarefulBehavior(HonestBehavior):
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[location]:  # TODO: check -10
+                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[location]:
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))
@@ -194,9 +194,12 @@ class CarefulBehavior(HonestBehavior):
                f"{self.pending_information[Location.NEST]}"
 
 
-class CarefulBehaviorV2(CarefulBehavior):
-    def __init__(self, security_level=3):
-        super(CarefulBehaviorV2, self).__init__(security_level)
+class SmartBehavior(HonestBehavior):
+    def __init__(self, threshold=0.1, cooldown=100):
+        super(SmartBehavior, self).__init__()
+        self.pending_information = {location: {} for location in Location}
+        self.threshold = threshold
+        self.cooldown = cooldown
 
     def communicate(self, session: CommunicationSession):
         for location in Location:
@@ -206,17 +209,34 @@ class CarefulBehaviorV2(CarefulBehavior):
                 if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[location]:
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
-                        other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))
-                        if not self.navigation_table.is_location_known(location):
+                        other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))  # TODO: refactor strategy and communication session so everything in own reference frame
+                        if not self.navigation_table.is_location_known(location) or \
+                                self.difference_score(self.navigation_table.get_location_vector(location), other_target.get_distance()) < self.threshold:
                             self.navigation_table.replace_target(location, other_target)
-                        elif len(self.pending_information[location]) == 0:
-                            prod = self.navigation_table.get_location_vector(location).dot(other_target)
+                            self.pending_information[location].clear()
                         else:
-                            self.pending_information[location][bot_id] = other_target
-                            if len(self.pending_information[location]) >= self.security_level:
-                                self.combine_pending_information(location)
+                            for target in self.pending_information[location].values():
+                                if self.difference_score(target.get_distance(), other_target.get_distance()) < self.threshold:
+                                    self.navigation_table.replace_target(location, other_target)
+                                    self.pending_information[location].clear()
+                                    break
+                            else:
+                                self.pending_information[location][bot_id] = other_target
                     except InsufficientFundsException:
                         pass
+
+    def difference_score(self, current_vector, bought_vector):
+        return norm(current_vector-bought_vector)/norm(current_vector)
+
+    def step(self, sensors, api):
+        super().step(sensors, api)
+        self.update_pending_information()
+
+    def update_pending_information(self):
+        for location in Location:
+            for target in self.pending_information[location].values():
+                target.update(self.dr)
+                target.rotate(-get_orientation_from_vector(self.dr))
 
 
 class SaboteurBehavior(HonestBehavior):
