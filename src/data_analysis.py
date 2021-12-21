@@ -50,7 +50,7 @@ def compare_strats():
             fig.set_size_inches(16, 6)
             fig.suptitle(f"{f1}: {f2}")
             for i, s in enumerate(strats):
-                df = pd.read_csv(f"data/quality_comp/{f1}/{f2}/{s}.txt").values.flatten()
+                df = pd.read_csv(f"../data/quality_comp/{f1}/{f2}/{s}.txt").values.flatten()
                 pd.DataFrame(df).boxplot(ax=axs[i]).set_title(s)
             plt.show()
 
@@ -142,4 +142,5 @@ def line_hist(values, precision, alpha=1.0, color=None):
 
 
 if __name__ == '__main__':
+    compare_strats()
     compare_behaviors()

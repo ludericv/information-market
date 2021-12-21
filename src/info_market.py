@@ -28,7 +28,7 @@ def main_processes():
 
 def run():
     controller = MainController(config_file="../config/config.txt")
-    filename = "24careful_s3_1greedy.txt"
+    filename = "22careful_3saboteur.txt"
     with open(f"../data/behaviors/rewards/{filename}", "a") as file:
         file.write(controller.get_reward_stats())
     with open(f"../data/behaviors/items_collected/{filename}", "a") as file:
@@ -36,5 +36,5 @@ def run():
 
 
 if __name__ == '__main__':
-    main()
-    # main_processes()
+    # main()
+    main_processes()
