@@ -56,12 +56,16 @@ def compare_strats():
 
 
 def compare_behaviors():
-    filenames = ["25honest", "24honest_1saboteur", "24careful_s3_1saboteur", "24careful_s3_1greedy"]
+    filenames = ["25careful", "25smart_t25",
+                 "24careful_s3_1saboteur", "24smart_t25_1saboteur",
+                 "23careful_2saboteur", "23smart_t25_2saboteur",
+                 "22careful_3saboteur", "22smart_t25_3saboteur",
+                 "20careful_s3_5saboteur", "20smart_t25_5saboteur"]
     # items_collected_plot(filenames)
     # rewards_plot(filenames)
     # honest_vs_careful()
     # rewards_per_run("24honest_1saboteur")
-    show_run_difference(filenames)
+    show_run_difference(filenames, by=2)
 
 
 def honest_vs_careful():
@@ -101,25 +105,29 @@ def rewards_plot(filenames):
     plt.show()
 
 
-def show_run_difference(filenames):
-    fig, axs = plt.subplots(nrows=len(filenames), sharey=True)
+def show_run_difference(filenames, by=1):
+    nrows = len(filenames)//by
+    ncols = by
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharey=True, sharex=True)
     print(axs)
-    fig.set_size_inches(8, 6*len(filenames))
+    fig.set_size_inches(8*ncols, 6*nrows)
     for i, filename in enumerate(filenames):
+        row = i//by
+        col = i % by
         df = pd.read_csv(f"../data/behaviors/rewards/{filename}.txt", header=None)
         n_honest = int(re.search('[0-9]+', filename).group())
         n_bad = 25-n_honest
-        axs[i].set_title(filename)
-        axs[i].set_ylabel("reward")
-        axs[i].set_xlabel("run")
+        axs[row, col].set_title(filename)
+        axs[row, col].set_ylabel("reward")
+        axs[row, col].set_xlabel("run")
         means = df.iloc[:, :n_honest].apply(np.mean, axis=1)
         means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1)
         stds = df.iloc[:, :n_honest].apply(np.std, axis=1)
         stds_bad = df.iloc[:, -n_bad:].apply(np.std, axis=1)
         res = pd.concat([means, stds, means_bad, stds_bad], axis=1, keys=['mean', 'sd', 'mean_b', 'sd_b'])
         res = res.sort_values(by='mean')
-        axs[i].errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
-        axs[i].errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^', c=(1,0,0,1))
+        axs[row, col].errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
+        axs[row, col].errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^', c=(1,0,0,1))
     plt.show()
 
 
