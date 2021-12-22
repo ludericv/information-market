@@ -57,9 +57,9 @@ def compare_strats():
 
 def compare_behaviors():
     filenames = ["25honest", "24honest_1saboteur", "24careful_s3_1saboteur", "24careful_s3_1greedy"]
-    items_collected_plot(filenames)
-    rewards_plot(filenames)
-    honest_vs_careful()
+    # items_collected_plot(filenames)
+    # rewards_plot(filenames)
+    # honest_vs_careful()
     # rewards_per_run("24honest_1saboteur")
     show_run_difference(filenames)
 
@@ -102,25 +102,25 @@ def rewards_plot(filenames):
 
 
 def show_run_difference(filenames):
-    for filename in filenames:
+    fig, axs = plt.subplots(nrows=len(filenames), sharey=True)
+    print(axs)
+    fig.set_size_inches(8, 6*len(filenames))
+    for i, filename in enumerate(filenames):
         df = pd.read_csv(f"../data/behaviors/rewards/{filename}.txt", header=None)
         n_honest = int(re.search('[0-9]+', filename).group())
         n_bad = 25-n_honest
-        fig, axs = plt.subplots()
-        axs.set_title(filename)
-        axs.set_ylabel("reward")
-        axs.set_xlabel("run")
-        print(df.iloc[:, :n_honest])
+        axs[i].set_title(filename)
+        axs[i].set_ylabel("reward")
+        axs[i].set_xlabel("run")
         means = df.iloc[:, :n_honest].apply(np.mean, axis=1)
         means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1)
         stds = df.iloc[:, :n_honest].apply(np.std, axis=1)
         stds_bad = df.iloc[:, -n_bad:].apply(np.std, axis=1)
         res = pd.concat([means, stds, means_bad, stds_bad], axis=1, keys=['mean', 'sd', 'mean_b', 'sd_b'])
         res = res.sort_values(by='mean')
-        print(res['mean'])
-        plt.errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
-        plt.errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^', c=(1,0,0,1))
-        plt.show()
+        axs[i].errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
+        axs[i].errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^', c=(1,0,0,1))
+    plt.show()
 
 
 def rewards_per_run(filename):
@@ -142,5 +142,4 @@ def line_hist(values, precision, alpha=1.0, color=None):
 
 
 if __name__ == '__main__':
-    compare_strats()
     compare_behaviors()
