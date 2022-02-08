@@ -1,46 +1,12 @@
 from helpers import random_walk
 
 from src.model.environment import Environment
-from controllers.view_controller import ViewController
 
 
-class MainController:
-
-    def __init__(self, config_file="config.txt"):
+class Configuration:
+    def __init__(self, config_file):
         self.parameters = dict()
         self.read_config(config_file)
-        random_walk.set_parameters(random_walk_factor=self.parameters["RDWALK_FACTOR"],
-                                   levi_factor=self.parameters["LEVI_FACTOR"])
-        self.environment = Environment(width=self.parameters["WIDTH"],
-                                       height=self.parameters["HEIGHT"],
-                                       nb_robots=self.parameters["NB_ROBOTS"],
-                                       nb_honest=self.parameters["NB_HONEST"],
-                                       robot_speed=self.parameters["ROBOT_SPEED"],
-                                       comm_radius=self.parameters["COMM_RADIUS"],
-                                       robot_radius=self.parameters["ROBOT_RADIUS"],
-                                       rdwalk_factor=self.parameters["RDWALK_FACTOR"],
-                                       levi_factor=self.parameters["LEVI_FACTOR"],
-                                       food_x=self.parameters["FOOD_X"],
-                                       food_y=self.parameters["FOOD_Y"],
-                                       food_radius=self.parameters["FOOD_RADIUS"],
-                                       nest_x=self.parameters["NEST_X"],
-                                       nest_y=self.parameters["NEST_Y"],
-                                       nest_radius=self.parameters["NEST_RADIUS"],
-                                       noise_mu=self.parameters["NOISE_MU"],
-                                       noise_musd=self.parameters["NOISE_MUSD"],
-                                       noise_sd=self.parameters["NOISE_SD"],
-                                       initial_reward=self.parameters["INITIAL_REWARD"],
-                                       fuel_cost=self.parameters["FUEL_COST"],
-                                       info_cost=self.parameters["INFO_COST"]
-                                       )
-        self.tick = 0
-        if self.parameters["VISUALIZE"] != 0:
-            self.view_controller = ViewController(self,
-                                                  self.parameters["WIDTH"],
-                                                  self.parameters["HEIGHT"],
-                                                  self.parameters["FPS"])
-        else:
-            self.start_simulation()
 
     def read_config(self, config_file):
         with open(config_file, "r") as file:
@@ -58,16 +24,47 @@ class MainController:
         else:
             self.parameters[parameter] = int(value)
 
+
+class MainController:
+
+    def __init__(self, config: Configuration):
+        self.config = config
+        random_walk.set_parameters(random_walk_factor=self.config.parameters["RDWALK_FACTOR"],
+                                   levi_factor=self.config.parameters["LEVI_FACTOR"])
+        self.environment = Environment(width=self.config.parameters["WIDTH"],
+                                       height=self.config.parameters["HEIGHT"],
+                                       nb_robots=self.config.parameters["NB_ROBOTS"],
+                                       nb_honest=self.config.parameters["NB_HONEST"],
+                                       robot_speed=self.config.parameters["ROBOT_SPEED"],
+                                       comm_radius=self.config.parameters["COMM_RADIUS"],
+                                       robot_radius=self.config.parameters["ROBOT_RADIUS"],
+                                       rdwalk_factor=self.config.parameters["RDWALK_FACTOR"],
+                                       levi_factor=self.config.parameters["LEVI_FACTOR"],
+                                       food_x=self.config.parameters["FOOD_X"],
+                                       food_y=self.config.parameters["FOOD_Y"],
+                                       food_radius=self.config.parameters["FOOD_RADIUS"],
+                                       nest_x=self.config.parameters["NEST_X"],
+                                       nest_y=self.config.parameters["NEST_Y"],
+                                       nest_radius=self.config.parameters["NEST_RADIUS"],
+                                       noise_mu=self.config.parameters["NOISE_MU"],
+                                       noise_musd=self.config.parameters["NOISE_MUSD"],
+                                       noise_sd=self.config.parameters["NOISE_SD"],
+                                       initial_reward=self.config.parameters["INITIAL_REWARD"],
+                                       fuel_cost=self.config.parameters["FUEL_COST"],
+                                       info_cost=self.config.parameters["INFO_COST"]
+                                       )
+        self.tick = 0
+
     def step(self):
-        if self.tick < self.parameters["SIMULATION_STEPS"]:
+        if self.tick < self.config.parameters["SIMULATION_STEPS"]:
             self.tick += 1
             self.environment.step()
 
     def start_simulation(self):
         # now = time.time()
-        for step_nb in range(self.parameters["SIMULATION_STEPS"]):
+        for step_nb in range(self.config.parameters["SIMULATION_STEPS"]):
             self.step()
-        # print(f"Time taken for {self.parameters['SIMULATION_STEPS']} steps: {time.time()-now}")
+        # print(f"Time taken for {self.config.parameters['SIMULATION_STEPS']} steps: {time.time()-now}")
 
     def get_sorted_reward_stats(self):
         sorted_bots = sorted([bot for bot in self.environment.population], key=lambda bot: abs(bot.noise_mu))

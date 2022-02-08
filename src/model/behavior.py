@@ -195,11 +195,10 @@ class CarefulBehavior(HonestBehavior):
 
 
 class SmartBehavior(HonestBehavior):
-    def __init__(self, threshold=0.1, cooldown=100):
+    def __init__(self, threshold=0.1):
         super(SmartBehavior, self).__init__()
         self.pending_information = {location: {} for location in Location}
         self.threshold = threshold
-        self.cooldown = cooldown
 
     def communicate(self, session: CommunicationSession):
         for location in Location:
@@ -225,7 +224,8 @@ class SmartBehavior(HonestBehavior):
                     except InsufficientFundsException:
                         pass
 
-    def difference_score(self, current_vector, bought_vector):
+    @staticmethod
+    def difference_score(current_vector, bought_vector):
         return norm(current_vector-bought_vector)/norm(current_vector)
 
     def step(self, sensors, api):

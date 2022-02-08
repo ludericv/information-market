@@ -1,16 +1,27 @@
-from controllers.main_controller import MainController
+from controllers.main_controller import MainController, Configuration
+from controllers.view_controller import ViewController
 from multiprocessing import Process, cpu_count
 
 
 def main():
-    controller = MainController(config_file="../config/config.txt")
+    with open(file="../config/config.txt") as file:
+        pass
+    config = Configuration(config_file="../config/config.txt")
+    if config.parameters["VISUALIZE"] != 0:
+        main_controller = MainController(config)
+        view_controller = ViewController(main_controller,
+                                         config.parameters["WIDTH"],
+                                         config.parameters["HEIGHT"],
+                                         config.parameters["FPS"])
+    else:
+        run_processes(config)
 
 
-def main_processes():
-    NB_RUNS = 128
+def run_processes(config: Configuration):
+    NB_RUNS = config.parameters["NB_RUNS"]
     N_CORES = cpu_count()
 
-    process_table = [Process(target=run) for i in range(NB_RUNS)]
+    process_table = [Process(target=run, args=(config,)) for i in range(NB_RUNS)]
     for batch in range(NB_RUNS // N_CORES):
         for batch_process in range(N_CORES):
             process_table[batch_process + batch * N_CORES].start()
@@ -26,8 +37,9 @@ def main_processes():
         print(f"joined process {batch_process + NB_RUNS - NB_RUNS % N_CORES}")
 
 
-def run():
-    controller = MainController(config_file="../config/config.txt")
+def run(config):
+    controller = MainController(config)
+    controller.start_simulation()
     filename = "20honest_s3_5saboteur.txt"
     with open(f"../data/behaviors/rewards/{filename}", "a") as file:
         file.write(controller.get_reward_stats())
@@ -36,5 +48,4 @@ def run():
 
 
 if __name__ == '__main__':
-    # main()
-    main_processes()
+    main()

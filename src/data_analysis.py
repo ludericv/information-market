@@ -61,11 +61,11 @@ def compare_behaviors():
                  "23careful_2saboteur", "23smart_t25_2saboteur",
                  "22careful_3saboteur", "22smart_t25_3saboteur",
                  "20careful_s3_5saboteur", "20smart_t25_5saboteur"]
-    # items_collected_plot(filenames)
-    # rewards_plot(filenames)
-    # honest_vs_careful()
-    # rewards_per_run("24honest_1saboteur")
     show_run_difference(filenames, by=2)
+    filenames = ["25honest", "25careful", "25smart_t25",
+                 "24honest_1saboteur", "24careful_s3_1saboteur", "24smart_t25_1saboteur"]
+    rewards_plot(filenames)
+    show_run_difference(filenames, by=3)
 
 
 def honest_vs_careful():

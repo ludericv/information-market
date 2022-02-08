@@ -27,35 +27,40 @@ class ViewController:
         debug_title = self.debug_canvas.create_text(5, 5, fill="gray30", text=f"Debug", font="Arial 13 bold", anchor="nw")
         self.debug_text = self.debug_canvas.create_text(5, 25, fill="gray30", text=f"No robot selected", anchor="nw", font="Arial 10")
 
-        self.animating = True
+        self.animation_ended = False
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.paused = False
+        self.can_render = False
         self.create_bindings()
 
         self.last_frame_time = time.time()
         self.last_fps_check_time = time.time()
-        self.update()
+        self.start_animation()
 
-        self.root.mainloop()
+    def start_animation(self):
+        while not self.animation_ended:
+            # Draw environment
+            if self.can_render:
+                self.last_frame_time = time.time()
+                self.fps_update_counter += 1
+                # Update environment
+                if not self.paused:
+                    self.controller.step()
 
-    def update(self):
-        # Update environment
-        if self.animating:
-            self.controller.step()
+                self.refresh()
+                self.can_render = False
 
-        # Draw environment
-        self.refresh()
+            # Count elapsed time and schedule next update
+            if time.time() - self.last_frame_time >= 1.0 / self.fps_cap:
+                self.can_render = True
 
-        # Count elapsed time and schedule next update
-        diff = time.time() - self.last_frame_time
-        self.last_frame_time = time.time()
-        remaining = 1 / self.fps_cap - diff
-        self.root.after(round(1000 * remaining if remaining > 0 else 1), self.update)
+            # Update FPS counter
+            if time.time() - self.last_fps_check_time >= 1:
+                self.fps = self.fps_update_counter
+                self.fps_update_counter = 0
+                self.last_fps_check_time = time.time()
 
-        # Update FPS counter
-        self.fps_update_counter += 1
-        if time.time() - self.last_fps_check_time >= 1:
-            self.fps = self.fps_update_counter
-            self.fps_update_counter = 0
-            self.last_fps_check_time = time.time()
+            self.root.update()
 
     def refresh(self):
         self.display_selected_info()
@@ -77,8 +82,11 @@ class ViewController:
         self.root.bind("<Button-1>", self.select_robot)
         self.root.bind("<n>", lambda event: self.controller.step())
 
+    def on_closing(self):
+        self.animation_ended = True
+
     def switch_animating_state(self, event):
-        self.animating = not self.animating
+        self.paused = not self.paused
 
     def select_robot(self, event):
         self.selected_robot = self.controller.get_robot_at(event.x, event.y)
