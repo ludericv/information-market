@@ -36,6 +36,10 @@ class Environment:
         self.foraging_spawns = self.create_spawn_dicts()
         self.create_robots()
         self.best_bot_id = self.get_best_bot_id()
+        self.img = None
+
+    def load_images(self):
+        self.img = ImageTk.PhotoImage(file="../assets/strawberry.png")
 
     def step(self):
         # compute neighbors
@@ -71,7 +75,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=HonestBehavior(),  # Line that changes
+                          behavior=SmartBehavior(),  # Line that changes
                           environment=self)
             self.population.append(robot)
         for robot_id in range(self.nb_honest, self.nb_robots):
@@ -163,8 +167,6 @@ class Environment:
         return best_bot_id
 
     def draw_strawberries(self, canvas):
-        img = Image.open("../assets/strawberry.png")
-        self.img = ImageTk.PhotoImage(img)
         for id, pos in self.foraging_spawns[Location.FOOD].items():
             canvas.create_image(pos[0] - 8, pos[1] - 8, image=self.img, anchor='nw')
             # res = canvas.create_rectangle(pos[0]-4, pos[1]-4, pos[0]+4, pos[1]+4, fill="red")

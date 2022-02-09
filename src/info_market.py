@@ -1,12 +1,11 @@
 from controllers.main_controller import MainController, Configuration
 from controllers.view_controller import ViewController
 from multiprocessing import Process, cpu_count
+from sys import argv
 
 
 def main():
-    with open(file="../config/config.txt") as file:
-        pass
-    config = Configuration(config_file="../config/config.txt")
+    config = Configuration(config_file=argv[1])
     if config.parameters["VISUALIZE"] != 0:
         main_controller = MainController(config)
         view_controller = ViewController(main_controller,
@@ -14,33 +13,37 @@ def main():
                                          config.parameters["HEIGHT"],
                                          config.parameters["FPS"])
     else:
-        run_processes(config)
+        for arg in argv[1:]:
+            config = Configuration(config_file=arg)
+            run_processes(config)
 
 
 def run_processes(config: Configuration):
-    NB_RUNS = config.parameters["NB_RUNS"]
-    N_CORES = cpu_count()
+    nb_runs = config.parameters["NB_RUNS"]
+    nb_cores = cpu_count()
 
-    process_table = [Process(target=run, args=(config,)) for i in range(NB_RUNS)]
-    for batch in range(NB_RUNS // N_CORES):
-        for batch_process in range(N_CORES):
-            process_table[batch_process + batch * N_CORES].start()
-            print(f"launched process {batch_process + batch * N_CORES}")
-        for batch_process in range(N_CORES):
-            process_table[batch_process + batch * N_CORES].join()
-            print(f"joined process {batch_process + batch * N_CORES}")
-    for batch_process in range(NB_RUNS % N_CORES):
-        process_table[batch_process + NB_RUNS - NB_RUNS % N_CORES].start()
-        print(f"launched process {batch_process + NB_RUNS - NB_RUNS % N_CORES}")
-    for batch_process in range(NB_RUNS % N_CORES):
-        process_table[batch_process + NB_RUNS - NB_RUNS % N_CORES].join()
-        print(f"joined process {batch_process + NB_RUNS - NB_RUNS % N_CORES}")
+    process_table = [Process(target=run, args=(config,)) for i in range(nb_runs)]
+    for batch in range(nb_runs // nb_cores):
+        for batch_process in range(nb_cores):
+            process_table[batch_process + batch * nb_cores].start()
+            print(f"launched process {batch_process + batch * nb_cores}")
+        for batch_process in range(nb_cores):
+            process_table[batch_process + batch * nb_cores].join()
+            print(f"joined process {batch_process + batch * nb_cores}")
+    for batch_process in range(nb_runs % nb_cores):
+        process_table[batch_process + nb_runs - nb_runs % nb_cores].start()
+        print(f"launched process {batch_process + nb_runs - nb_runs % nb_cores}")
+    for batch_process in range(nb_runs % nb_cores):
+        process_table[batch_process + nb_runs - nb_runs % nb_cores].join()
+        print(f"joined process {batch_process + nb_runs - nb_runs % nb_cores}")
 
 
 def run(config):
     controller = MainController(config)
+    nb_honest = config.parameters["NB_HONEST"]
+    nb_saboteur = config.parameters["NB_ROBOTS"] - nb_honest
     controller.start_simulation()
-    filename = "20honest_s3_5saboteur.txt"
+    filename = f"{nb_honest}honest_s3_{nb_saboteur}saboteur.txt"
     with open(f"../data/behaviors/rewards/{filename}", "a") as file:
         file.write(controller.get_reward_stats())
     with open(f"../data/behaviors/items_collected/{filename}", "a") as file:

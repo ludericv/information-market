@@ -14,6 +14,7 @@ class ViewController:
         self.fps_update_counter = 0
 
         self.root = tk.Tk()
+        self.controller.environment.load_images()
         self.root.title("Foraging Simulator")
 
         self.canvas = tk.Canvas(self.root, width=width, height=height, highlightthickness=0)

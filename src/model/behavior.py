@@ -195,7 +195,7 @@ class CarefulBehavior(HonestBehavior):
 
 
 class SmartBehavior(HonestBehavior):
-    def __init__(self, threshold=0.1):
+    def __init__(self, threshold=0.25):
         super(SmartBehavior, self).__init__()
         self.pending_information = {location: {} for location in Location}
         self.threshold = threshold
