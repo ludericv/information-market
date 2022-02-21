@@ -143,7 +143,7 @@ class HonestBehavior(Behavior):
     def update_nav_table_based_on_dr(self, api):
         self.navigation_table.update_from_movement(self.dr)
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
-        self.navigation_table.decay_qualities(1-0.01*abs(api.get_mu))
+        self.navigation_table.decay_qualities(1 - 0.01 * abs(api.get_mu))
 
 
 class CarefulBehavior(HonestBehavior):
@@ -158,7 +158,8 @@ class CarefulBehavior(HonestBehavior):
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[location]:
+                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[
+                    location]:
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))
@@ -174,7 +175,8 @@ class CarefulBehavior(HonestBehavior):
     def combine_pending_information(self, location):
         distances = [t.get_distance() for t in self.pending_information[location].values()]
         mean_distance = np.mean(distances, axis=0)
-        best_target = min(self.pending_information[location].values(), key=lambda t: norm(t.get_distance()-mean_distance))
+        best_target = min(self.pending_information[location].values(),
+                          key=lambda t: norm(t.get_distance() - mean_distance))
         self.navigation_table.replace_target(location, best_target)
         self.pending_information[location].clear()
 
@@ -205,17 +207,22 @@ class SmartBehavior(HonestBehavior):
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[location]:
+                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[
+                        location]:
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
-                        other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))  # TODO: refactor strategy and communication session so everything in own reference frame
+                        other_target.set_distance(other_target.get_distance() + session.get_distance_from(
+                            bot_id))
+                        # TODO: refactor strategy and communication session so everything in own reference frame
                         if not self.navigation_table.is_location_known(location) or \
-                                self.difference_score(self.navigation_table.get_location_vector(location), other_target.get_distance()) < self.threshold:
+                                self.difference_score(self.navigation_table.get_location_vector(location),
+                                                      other_target.get_distance()) < self.threshold:
                             self.navigation_table.replace_target(location, other_target)
                             self.pending_information[location].clear()
                         else:
                             for target in self.pending_information[location].values():
-                                if self.difference_score(target.get_distance(), other_target.get_distance()) < self.threshold:
+                                if self.difference_score(target.get_distance(),
+                                                         other_target.get_distance()) < self.threshold:
                                     self.navigation_table.replace_target(location, other_target)
                                     self.pending_information[location].clear()
                                     break
@@ -226,7 +233,9 @@ class SmartBehavior(HonestBehavior):
 
     @staticmethod
     def difference_score(current_vector, bought_vector):
-        return norm(current_vector-bought_vector)/norm(current_vector)
+        v_norm = norm(current_vector)
+        score = norm(current_vector - bought_vector) / v_norm if v_norm > 0 else 1000
+        return score
 
     def step(self, sensors, api):
         super().step(sensors, api)
@@ -257,5 +266,5 @@ class GreedyBehavior(HonestBehavior):
 
     def get_target(self, location):
         t = copy.deepcopy(self.navigation_table.get_target(location))
-        t.age = 1
+        t.age = t.age - 10 if t.age > 10 else 1
         return t

@@ -56,16 +56,25 @@ def compare_strats():
 
 
 def compare_behaviors():
-    filenames = ["25careful", "25smart_t25",
-                 "24careful_s3_1saboteur", "24smart_t25_1saboteur",
-                 "23careful_2saboteur", "23smart_t25_2saboteur",
-                 "22careful_3saboteur", "22smart_t25_3saboteur",
-                 "20careful_s3_5saboteur", "20smart_t25_5saboteur"]
-    show_run_difference(filenames, by=2)
+    filenames = ["25careful", "25smart_t25", "25smart_t25",
+                 "24careful_s3_1saboteur", "24smart_t25_1saboteur", "24smart_t25_1greedy",
+                 "23careful_2saboteur", "23smart_t25_2saboteur", "23smart_t25_2greedy",
+                 "22careful_3saboteur", "22smart_t25_3saboteur", "22smart_t25_3greedy",
+                 "20careful_s3_5saboteur", "20smart_t25_5saboteur", "20smart_t25_5greedy"]
+    # show_run_difference(filenames, by=3)
     filenames = ["25honest", "25careful", "25smart_t25",
                  "24honest_1saboteur", "24careful_s3_1saboteur", "24smart_t25_1saboteur"]
     rewards_plot(filenames)
-    show_run_difference(filenames, by=3)
+    # show_run_difference(filenames, by=3)
+    filenames = [
+        "25honest", "25smart_t10", "25smart_t25", "25smart_t40_0saboteur", "25smart_t100_0saboteur",
+        "24honest_1saboteur", "24smart_t10_1saboteur", "24smart_t25_1saboteur", "24smart_t40_1saboteur", "24smart_t100_1saboteur"
+    ]
+    show_run_difference(filenames, by=5)
+    filenames = ["24smart_t25_1greedy", "24smart_t25_1greedy_minus10",
+                 "22smart_t25_3greedy", "22smart_t25_3greedy_minus10",
+                 "20smart_t25_5greedy", "20smart_t25_5greedy_minus10"]
+    show_run_difference(filenames, by=2)
 
 
 def honest_vs_careful():
