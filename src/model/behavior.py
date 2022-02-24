@@ -5,8 +5,8 @@ from math import cos, radians, sin
 
 import numpy as np
 
-from src.model.communication import CommunicationSession
-from src.model.navigation import Location, NavigationTable
+from model.communication import CommunicationSession
+from model.navigation import Location, NavigationTable
 from model.strategy import WeightedAverageAgeStrategy
 from helpers.utils import get_orientation_from_vector, norm, InsufficientFundsException
 

@@ -1,8 +1,8 @@
 from math import cos, sin, radians
-from PIL import Image, ImageTk
-from src.model.agent import Agent
-from src.model.behavior import SaboteurBehavior, CarefulBehavior, SmartBehavior, HonestBehavior, GreedyBehavior
-from src.model.navigation import Location
+from PIL import ImageTk
+from model.agent import Agent
+from model.behavior import SaboteurBehavior, CarefulBehavior, SmartBehavior, HonestBehavior, GreedyBehavior
+from model.navigation import Location
 from helpers.utils import norm, distance_between
 from random import randint, random
 import numpy as np

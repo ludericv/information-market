@@ -1,6 +1,6 @@
 from helpers import random_walk
 
-from src.model.environment import Environment
+from model.environment import Environment
 
 
 class Configuration:
