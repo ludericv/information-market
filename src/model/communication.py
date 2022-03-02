@@ -1,6 +1,6 @@
 import copy
 
-from src.model.navigation import Location, Target
+from model.navigation import Location, Target
 from helpers.utils import rotate
 
 

@@ -6,9 +6,9 @@ from tkinter import LAST
 from collections import deque
 
 from model.payment import FixedSharePaymentSystem, TimeVaryingSharePaymentSystem
-from src.model.behavior import State
-from src.model.communication import CommunicationSession
-from src.model.navigation import Location
+from model.behavior import State
+from model.communication import CommunicationSession
+from model.navigation import Location
 import numpy as np
 
 from helpers.utils import get_orientation_from_vector, rotate, InsufficientFundsException
