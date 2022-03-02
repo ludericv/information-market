@@ -5,6 +5,7 @@ from math import sin, cos, radians
 from tkinter import LAST
 from collections import deque
 
+from model.payment import FixedSharePaymentSystem, TimeVaryingSharePaymentSystem
 from src.model.behavior import State
 from src.model.communication import CommunicationSession
 from src.model.navigation import Location
@@ -49,6 +50,7 @@ class Agent:
         self.fuel_cost = fuel_cost
         self.info_cost = info_cost
         self.environment = environment
+        self.payment_system = TimeVaryingSharePaymentSystem()
 
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
@@ -72,11 +74,21 @@ class Agent:
                f"carries food: {self._carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
                f"reward: {round(self._reward, 3)}$\n" \
+               f"item count: {self.items_collected}\n" \
                f"dr: {np.round(self.behavior.get_dr(), 2)}\n" \
                f"{self.behavior.debug_text()}"
 
     def __repr__(self):
         return f"bot {self.id}"
+
+    def __hash__(self):
+        return self.id
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __ne__(self, other):
+        return not (self == other)
 
     def communicate(self, neighbors):
         self.previous_nav = copy.deepcopy(self.behavior.navigation_table)
@@ -90,6 +102,7 @@ class Agent:
         sensors = self.environment.get_sensors(self)
         # self.check_food(sensors)
         self.behavior.step(sensors, AgentAPI(self))
+        self.payment_system.step()
         try:
             self.modify_reward(-self.fuel_cost)
             self.move()
@@ -240,3 +253,6 @@ class Agent:
 
     def pickup_food(self):
         self._carries_food = True
+
+    def pay_creditors(self):
+        self.payment_system.pay_creditors(self.info_cost)

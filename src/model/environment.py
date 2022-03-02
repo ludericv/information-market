@@ -220,7 +220,8 @@ class Environment:
     def deposit_food(self, robot):
         robot.drop_food()
         self.foraging_spawns[Location.NEST].pop(robot.id)
-        robot.modify_reward(1)
+        robot.modify_reward(1-self.info_cost)
+        robot.pay_creditors()
 
     def pickup_food(self, robot):
         robot.pickup_food()

@@ -208,12 +208,11 @@ class SmartBehavior(HonestBehavior):
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
                 if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[
-                        location]:
+                    location]:
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         other_target.set_distance(other_target.get_distance() + session.get_distance_from(
                             bot_id))
-                        # TODO: refactor strategy and communication session so everything in own reference frame
                         if not self.navigation_table.is_location_known(location) or \
                                 self.difference_score(self.navigation_table.get_location_vector(location),
                                                       other_target.get_distance()) < self.threshold:
@@ -266,5 +265,5 @@ class GreedyBehavior(HonestBehavior):
 
     def get_target(self, location):
         t = copy.deepcopy(self.navigation_table.get_target(location))
-        t.age = t.age - 10 if t.age > 10 else 1
+        t.age = 1  # t.age - 10 if t.age > 10 else 1
         return t

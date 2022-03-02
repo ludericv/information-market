@@ -27,9 +27,7 @@ class CommunicationSession:
         return metadata
 
     def make_transaction(self, neighbor_id, location) -> Target:
-        price = self.get_target_price(neighbor_id, location)
-        self._client.modify_reward(-price)
-        self._neighbors[neighbor_id].modify_reward(price)
+        self._client.payment_system.add_creditor(self._neighbors[neighbor_id])
         target = copy.deepcopy(self._neighbors[neighbor_id].get_target_from_behavior(location))
         target.rotate(self._neighbors[neighbor_id].orientation-self._client.orientation)
         return target

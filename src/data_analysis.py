@@ -56,19 +56,21 @@ def compare_strats():
 
 
 def compare_behaviors():
-    filenames = ["25careful", "25smart_t25", "25smart_t25",
-                 "24careful_s3_1saboteur", "24smart_t25_1saboteur", "24smart_t25_1greedy",
-                 "23careful_2saboteur", "23smart_t25_2saboteur", "23smart_t25_2greedy",
-                 "22careful_3saboteur", "22smart_t25_3saboteur", "22smart_t25_3greedy",
-                 "20careful_s3_5saboteur", "20smart_t25_5saboteur", "20smart_t25_5greedy"]
-    # show_run_difference(filenames, by=3)
+    filenames = ["25careful", "25smart_t25",  # "25smart_t25",
+                 "24careful_s3_1saboteur", "24smart_t25_1saboteur",  # "24smart_t25_1greedy",
+                 "23careful_2saboteur", "23smart_t25_2saboteur",  # "23smart_t25_2greedy",
+                 "22careful_3saboteur", "22smart_t25_3saboteur",  # "22smart_t25_3greedy",
+                 "20careful_s3_5saboteur", "20smart_t25_5saboteur"  # , "20smart_t25_5greedy"
+                 ]
+    show_run_difference(filenames, by=2)
     filenames = ["25honest", "25careful", "25smart_t25",
                  "24honest_1saboteur", "24careful_s3_1saboteur", "24smart_t25_1saboteur"]
     rewards_plot(filenames)
-    # show_run_difference(filenames, by=3)
+    show_run_difference(filenames, by=3)
     filenames = [
         "25honest", "25smart_t10", "25smart_t25", "25smart_t40_0saboteur", "25smart_t100_0saboteur",
-        "24honest_1saboteur", "24smart_t10_1saboteur", "24smart_t25_1saboteur", "24smart_t40_1saboteur", "24smart_t100_1saboteur"
+        "24honest_1saboteur", "24smart_t10_1saboteur", "24smart_t25_1saboteur", "24smart_t40_1saboteur",
+        "24smart_t100_1saboteur"
     ]
     show_run_difference(filenames, by=5)
     filenames = ["24smart_t25_1greedy", "24smart_t25_1greedy_minus10",
@@ -114,20 +116,20 @@ def rewards_plot(filenames):
     plt.show()
 
 
-def show_run_difference(filenames, by=1):
-    nrows = len(filenames)//by
+def show_run_difference(filenames, by=1, metric="items_collected"):
+    nrows = len(filenames) // by
     ncols = by
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharey=True, sharex=True)
     print(axs)
-    fig.set_size_inches(8*ncols, 6*nrows)
+    fig.set_size_inches(8 * ncols, 6 * nrows)
     for i, filename in enumerate(filenames):
-        row = i//by
+        row = i // by
         col = i % by
-        df = pd.read_csv(f"../data/behaviors/rewards/{filename}.txt", header=None)
+        df = pd.read_csv(f"../data/behaviors/{metric}/{filename}.txt", header=None)
         n_honest = int(re.search('[0-9]+', filename).group())
-        n_bad = 25-n_honest
+        n_bad = 25 - n_honest
         axs[row, col].set_title(filename)
-        axs[row, col].set_ylabel("reward")
+        axs[row, col].set_ylabel("type")
         axs[row, col].set_xlabel("run")
         means = df.iloc[:, :n_honest].apply(np.mean, axis=1)
         means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1)
@@ -136,7 +138,9 @@ def show_run_difference(filenames, by=1):
         res = pd.concat([means, stds, means_bad, stds_bad], axis=1, keys=['mean', 'sd', 'mean_b', 'sd_b'])
         res = res.sort_values(by='mean')
         axs[row, col].errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
-        axs[row, col].errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^', c=(1,0,0,1))
+        if n_bad > 0:
+            axs[row, col].errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^',
+                                   c=(1, 0, 0, 1))
     plt.show()
 
 
