@@ -79,6 +79,16 @@ def compare_behaviors():
     show_run_difference(filenames, by=2)
 
 
+def compare_payment_types():
+    filenames = []
+    for i in [25,24,22,20]:
+        j = 25-i
+        filenames.append(f"{i}smart_t25_{j}greedy_50_infocost_fixed")
+        filenames.append(f"{i}smart_t25_{j}greedy_50_infocost_timevarying")
+    show_run_difference(filenames, by=2, comparison_on="payment_types", metric="rewards")
+    show_run_difference([filenames[i] for i in [1,3,5,7]], by=4, comparison_on="payment_types", metric="rewards")
+
+
 def honest_vs_careful():
     h_name = "24honest_1saboteur"
     c_name = "24careful_s3_1saboteur"
@@ -116,7 +126,7 @@ def rewards_plot(filenames):
     plt.show()
 
 
-def show_run_difference(filenames, by=1, metric="items_collected"):
+def show_run_difference(filenames, by=1, comparison_on="behaviors", metric="items_collected"):
     nrows = len(filenames) // by
     ncols = by
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharey=True, sharex=True)
@@ -125,21 +135,27 @@ def show_run_difference(filenames, by=1, metric="items_collected"):
     for i, filename in enumerate(filenames):
         row = i // by
         col = i % by
-        df = pd.read_csv(f"../data/behaviors/{metric}/{filename}.txt", header=None)
+        df = pd.read_csv(f"../data/{comparison_on}/{metric}/{filename}.txt", header=None)
         n_honest = int(re.search('[0-9]+', filename).group())
         n_bad = 25 - n_honest
-        axs[row, col].set_title(filename)
-        axs[row, col].set_ylabel("type")
-        axs[row, col].set_xlabel("run")
+
+        if nrows == 1 or ncols == 1:
+            frame = axs[row] if ncols == 1 else axs[col]
+        else:
+            frame = axs[row, col]
+
+        frame.set_title(filename)
+        frame.set_ylabel(metric)
+        frame.set_xlabel("run")
         means = df.iloc[:, :n_honest].apply(np.mean, axis=1)
         means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1)
         stds = df.iloc[:, :n_honest].apply(np.std, axis=1)
         stds_bad = df.iloc[:, -n_bad:].apply(np.std, axis=1)
         res = pd.concat([means, stds, means_bad, stds_bad], axis=1, keys=['mean', 'sd', 'mean_b', 'sd_b'])
         res = res.sort_values(by='mean')
-        axs[row, col].errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
+        frame.errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
         if n_bad > 0:
-            axs[row, col].errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^',
+            frame.errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^',
                                    c=(1, 0, 0, 1))
     plt.show()
 
@@ -163,4 +179,5 @@ def line_hist(values, precision, alpha=1.0, color=None):
 
 
 if __name__ == '__main__':
-    compare_behaviors()
+    # compare_behaviors()
+    compare_payment_types()

@@ -50,7 +50,7 @@ class Agent:
         self.fuel_cost = fuel_cost
         self.info_cost = info_cost
         self.environment = environment
-        self.payment_system = TimeVaryingSharePaymentSystem()
+        self.payment_system = FixedSharePaymentSystem()
 
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
