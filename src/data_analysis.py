@@ -81,7 +81,7 @@ def compare_behaviors():
 
 def compare_payment_types():
     filenames = []
-    for i in [25,24,22,20]:
+    for i in [25, 24, 22, 20]:
         j = 25-i
         filenames.append(f"{i}smart_t25_{j}greedy_50_infocost_fixed")
         filenames.append(f"{i}smart_t25_{j}greedy_50_infocost_timevarying")
@@ -126,7 +126,7 @@ def rewards_plot(filenames):
     plt.show()
 
 
-def show_run_difference(filenames, by=1, comparison_on="behaviors", metric="items_collected"):
+def show_run_difference(filenames, by=1, comparison_on="behaviors", metric="rewards"):
     nrows = len(filenames) // by
     ncols = by
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharey=True, sharex=True)
@@ -179,5 +179,5 @@ def line_hist(values, precision, alpha=1.0, color=None):
 
 
 if __name__ == '__main__':
-    # compare_behaviors()
+    compare_behaviors()
     compare_payment_types()

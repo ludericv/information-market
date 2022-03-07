@@ -16,9 +16,6 @@ class CommunicationSession:
     def are_locations_known(self, location: Location):
         return [n.get_target_from_behavior(location).is_known() for n in self._neighbors]
 
-    def get_target_price(self, neighbor_id: int, location: Location) -> float:
-        return self._info_cost
-
     def get_metadata(self, location):
         metadata = {n_id: {
             "age": n.get_target_from_behavior(location).get_age(),

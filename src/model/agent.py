@@ -254,5 +254,5 @@ class Agent:
     def pickup_food(self):
         self._carries_food = True
 
-    def pay_creditors(self):
-        self.payment_system.pay_creditors(self.info_cost)
+    def pay_creditors(self, amount):
+        self.payment_system.pay_creditors(amount)

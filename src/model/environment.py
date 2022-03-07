@@ -221,7 +221,7 @@ class Environment:
         robot.drop_food()
         self.foraging_spawns[Location.NEST].pop(robot.id)
         robot.modify_reward(1-self.info_cost)
-        robot.pay_creditors()
+        robot.pay_creditors(self.info_cost)
 
     def pickup_food(self, robot):
         robot.pickup_food()
