@@ -2,10 +2,13 @@ from math import cos, sin, radians
 from PIL import ImageTk
 from model.agent import Agent
 from model.behavior import SaboteurBehavior, CarefulBehavior, SmartBehavior, HonestBehavior, GreedyBehavior
+from model.market import Market
 from model.navigation import Location
 from helpers.utils import norm, distance_between
 from random import randint, random
 import numpy as np
+
+from model.payment import PaymentDB
 
 
 class Environment:
@@ -36,6 +39,8 @@ class Environment:
         self.foraging_spawns = self.create_spawn_dicts()
         self.create_robots()
         self.best_bot_id = self.get_best_bot_id()
+        self.payment_database = PaymentDB([bot.id for bot in self.population], initial_reward, info_cost)
+        self.market = Market(12, 3)
         self.img = None
 
     def load_images(self):
@@ -44,7 +49,6 @@ class Environment:
     def step(self):
         # compute neighbors
         pop_size = len(self.population)
-        # pop_copy = copy.deepcopy(self.population)
         neighbors_table = [[] for i in range(pop_size)]
         for id1 in range(pop_size):
             for id2 in range(id1 + 1, pop_size):
@@ -61,6 +65,9 @@ class Environment:
         for robot in self.population:
             self.check_locations(robot)
             robot.step()
+
+        self.payment_database.step()
+        self.market.step()
 
     def create_robots(self):
         for robot_id in range(self.nb_honest):
@@ -220,8 +227,10 @@ class Environment:
     def deposit_food(self, robot):
         robot.drop_food()
         self.foraging_spawns[Location.NEST].pop(robot.id)
-        robot.modify_reward(1-self.info_cost)
-        robot.pay_creditors(self.info_cost)
+        reward = self.market.sell_strawberry()
+        print(f"Strawberry sold for ${round(reward, 2)} by bot {robot.id}")
+        self.payment_database.pay_reward(robot.id, reward=reward)
+        self.payment_database.pay_creditors(robot.id, total_reward=reward)
 
     def pickup_food(self, robot):
         robot.pickup_food()

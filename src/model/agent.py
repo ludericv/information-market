@@ -19,7 +19,6 @@ class AgentAPI:
         self.speed = agent.speed
         self.carries_food = agent.carries_food
         self.radius = agent.radius
-        self.reward = agent.reward
         self.get_vector = agent.get_vector
         self.get_levi_turn_angle = agent.get_levi_turn_angle
         self.get_mu = agent.noise_mu
@@ -37,7 +36,6 @@ class Agent:
 
         self._speed = speed
         self._radius = radius
-        self._reward = initial_reward
         self.items_collected = 0
         self._carries_food = False
 
@@ -50,7 +48,6 @@ class Agent:
         self.fuel_cost = fuel_cost
         self.info_cost = info_cost
         self.environment = environment
-        self.payment_system = FixedSharePaymentSystem()
 
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
@@ -73,7 +70,7 @@ class Agent:
                f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).age, 3)}\n" \
                f"carries food: {self._carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
-               f"reward: {round(self._reward, 3)}$\n" \
+               f"reward: {round(self.environment.payment_database.get_reward(self.id), 3)}$\n" \
                f"item count: {self.items_collected}\n" \
                f"dr: {np.round(self.behavior.get_dr(), 2)}\n" \
                f"{self.behavior.debug_text()}"
@@ -102,9 +99,8 @@ class Agent:
         sensors = self.environment.get_sensors(self)
         # self.check_food(sensors)
         self.behavior.step(sensors, AgentAPI(self))
-        self.payment_system.step()
         try:
-            self.modify_reward(-self.fuel_cost)
+            self.environment.payment_database.apply_cost(self.id, self.fuel_cost)
             self.move()
         except InsufficientFundsException:
             pass
@@ -238,15 +234,6 @@ class Agent:
     def carries_food(self):
         return self._carries_food
 
-    def reward(self):
-        return self._reward
-
-    def modify_reward(self, amount):
-        new_reward = self._reward + amount
-        if new_reward < 0:
-            raise InsufficientFundsException
-        self._reward = new_reward
-
     def drop_food(self):
         self._carries_food = False
         self.items_collected += 1
@@ -254,5 +241,5 @@ class Agent:
     def pickup_food(self):
         self._carries_food = True
 
-    def pay_creditors(self, amount):
-        self.payment_system.pay_creditors(amount)
+    def add_creditor(self, creditor_id):
+        self.environment.payment_database.add_creditor(self.id, creditor_id)
