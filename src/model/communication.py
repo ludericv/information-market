@@ -16,9 +16,6 @@ class CommunicationSession:
     def are_locations_known(self, location: Location):
         return [n.get_target_from_behavior(location).is_known() for n in self._neighbors]
 
-    def get_target_price(self, neighbor_id: int, location: Location) -> float:
-        return self._info_cost
-
     def get_metadata(self, location):
         metadata = {n_id: {
             "age": n.get_target_from_behavior(location).get_age(),
@@ -27,7 +24,7 @@ class CommunicationSession:
         return metadata
 
     def make_transaction(self, neighbor_id, location) -> Target:
-        self._client.payment_system.add_creditor(self._neighbors[neighbor_id])
+        self._client.add_creditor(neighbor_id)
         target = copy.deepcopy(self._neighbors[neighbor_id].get_target_from_behavior(location))
         target.rotate(self._neighbors[neighbor_id].orientation-self._client.orientation)
         return target
