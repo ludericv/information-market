@@ -62,9 +62,6 @@ class Agent:
                f"   known: {self.behavior.navigation_table.is_location_known(Location.FOOD)}\n" \
                f"expected nest at: ({round(self.pos[0] + rotate(self.behavior.navigation_table.get_location_vector(Location.NEST), self.orientation)[0])}, {round(self.pos[1] + rotate(self.behavior.navigation_table.get_location_vector(Location.NEST), self.orientation)[1])}), \n" \
                f"   known: {self.behavior.navigation_table.is_location_known(Location.NEST)}\n" \
-               f"info quality: \n" \
-               f"   -food={round(self.behavior.navigation_table.get_target(Location.FOOD).decaying_quality, 3)}\n" \
-               f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).decaying_quality, 3)}\n" \
                f"info age:\n" \
                f"   -food={round(self.behavior.navigation_table.get_target(Location.FOOD).age, 3)}\n" \
                f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).age, 3)}\n" \

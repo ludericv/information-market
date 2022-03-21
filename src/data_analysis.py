@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+from model.market import exponential_model, logistics_model
+
 
 def main():
     dec_const = pd.read_csv("../data/old_data/results_decaying_constant.txt", header=None).values.flatten()
@@ -178,6 +180,35 @@ def line_hist(values, precision, alpha=1.0, color=None):
     plt.plot(bins[:-1], n, alpha=alpha, c=color)
 
 
+def supply_demand_simulation():
+    n_bots = 25
+    demand = 1.2
+    max_price = 3
+    creditor_share = 0.5
+    static_rewards = []
+    supplies = range(1, n_bots+1)
+    active_rewards = []
+    active_only_rewards = []
+    for supply in supplies:
+        n_active = supply
+        reward_per_active = exponential_model(demand=demand*n_bots, max_price=max_price, supply=supply)
+        static_reward = n_active*(creditor_share/(n_bots-1))*reward_per_active
+        static_rewards.append(static_reward)
+        active_reward = (((n_active - 1) / (n_bots - 1) * creditor_share) + 1 - creditor_share) * reward_per_active
+        active_rewards.append(active_reward)
+        active_only_rewards.append((1-creditor_share) * reward_per_active)
+    plt.plot(supplies, static_rewards)
+    plt.plot(supplies, active_only_rewards)
+    plt.plot(supplies, active_rewards)
+    plt.axhline(y=max(static_rewards), color='r', linestyle='-')
+    plt.legend(["information", "foraging", "information + foraging", f"information max ={round(max(static_rewards), 2)}"])
+    plt.title(f"creditor share = {creditor_share}, demand = {demand}")
+    plt.xlabel("supply")
+    plt.ylabel("reward")
+    plt.show()
+
+
 if __name__ == '__main__':
-    compare_behaviors()
-    compare_payment_types()
+    supply_demand_simulation()
+    # compare_behaviors()
+    # compare_payment_types()

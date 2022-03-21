@@ -18,7 +18,7 @@ class Configuration:
 
     def add_to_parameters(self, parameter, value):
         float_params = {"RDWALK_FACTOR", "ROBOT_SPEED", "LEVI_FACTOR", "NOISE_MU", "NOISE_MUSD",
-                        "NOISE_SD", "COMM_RADIUS", "INITIAL_REWARD", "FUEL_COST", "INFO_COST"}
+                        "NOISE_SD", "COMM_RADIUS", "INITIAL_REWARD", "FUEL_COST", "INFO_COST", "DEMAND", "MAX_PRICE"}
         if parameter in float_params:
             self.parameters[parameter] = float(value)
         else:
@@ -51,7 +51,9 @@ class MainController:
                                        noise_sd=self.config.parameters["NOISE_SD"],
                                        initial_reward=self.config.parameters["INITIAL_REWARD"],
                                        fuel_cost=self.config.parameters["FUEL_COST"],
-                                       info_cost=self.config.parameters["INFO_COST"]
+                                       info_cost=self.config.parameters["INFO_COST"],
+                                       demand=self.config.parameters["DEMAND"],
+                                       max_price=self.config.parameters["MAX_PRICE"]
                                        )
         self.tick = 0
 

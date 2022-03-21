@@ -16,7 +16,7 @@ class Environment:
     def __init__(self, width=500, height=500, nb_robots=30, nb_honest=29, robot_speed=3, robot_radius=5, comm_radius=25,
                  rdwalk_factor=0,
                  levi_factor=2, food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25, noise_mu=0,
-                 noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01):
+                 noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01, demand=15, max_price=3):
         self.population = list()
         self.width = width
         self.height = height
@@ -40,7 +40,11 @@ class Environment:
         self.create_robots()
         self.best_bot_id = self.get_best_bot_id()
         self.payment_database = PaymentDB([bot.id for bot in self.population], initial_reward, info_cost)
-        self.market = Market(12, 3)
+
+        # demand in items that "perfect" robots would collect per step
+        self.demand = demand
+        demand_converted = demand*nb_robots*robot_speed/(2*norm([food_x-nest_x, food_y-nest_y]))
+        self.market = Market(demand_converted, max_price)
         self.img = None
 
     def load_images(self):
@@ -153,6 +157,20 @@ class Environment:
         for robot in self.population:
             robot.draw(canvas)
         # self.draw_best_bot(canvas)
+
+    def draw_market_stats(self, stats_canvas):
+        margin = 15
+        width = stats_canvas.winfo_width() - 2 * margin
+        height = 20
+        stats_canvas.create_rectangle(margin, 50, margin + width, 50 + height, fill="light green", outline="")
+        target_demand = self.market.demand
+        max_theoretical_supply = self.market.demand/self.demand
+        demand_pos_x = width*target_demand/max_theoretical_supply
+        supply_pos_x = width*self.market.get_supply()/max_theoretical_supply
+        supply_bar_width = 2
+        stats_canvas.create_rectangle(margin + demand_pos_x, 50, margin + width, 50 + height, fill="salmon", outline="")
+        stats_canvas.create_rectangle(margin + supply_pos_x - supply_bar_width/2, 48, margin + supply_pos_x + supply_bar_width/2, 52 + height, fill="gray45", outline="")
+        stats_canvas.create_text(margin + supply_pos_x - 5, 50 + height + 5, fill="gray45", text=f"{round(self.market.get_supply())}", anchor="nw", font="Arial 10")
 
     def draw_zones(self, canvas):
         food_circle = canvas.create_oval(self.food[0] - self.food[2],
