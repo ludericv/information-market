@@ -1,3 +1,5 @@
+from collections import Counter
+
 import numpy as np
 
 
@@ -30,7 +32,7 @@ class Market:
         average_supply = np.sum(self.supply_history)
         return logistics_model(self.max_price, average_supply, self.demand)
 
-    def sell_strawberry(self):
+    def sell_strawberry(self, robot_id):
         self.supply_during_current_step += 1
         print(f"Supply = {np.sum(self.supply_history)}, demand = {self.demand}")
         return self._price
@@ -43,3 +45,28 @@ class Market:
         self.supply_during_current_step = 0
         self.history_index = (self.history_index + 1) % self.max_history
         self._price = self.compute_price()
+
+
+class RoundTripPriceMarket:
+    def __init__(self, min_time, max_price):
+        self.demand = 10
+        self.robot_times = Counter()
+        self.min_time = min_time
+        self.max_price = max_price
+
+    def sell_strawberry(self, robot_id):
+        if robot_id not in self.robot_times:
+            self.robot_times[robot_id] = 0
+            return self.max_price
+
+        price = self.max_price*np.exp((self.min_time - self.robot_times[robot_id])/self.min_time)
+        print(f"{price} for {self.robot_times[robot_id]} (min of {self.min_time})")
+        self.robot_times[robot_id] = 0
+        return price
+
+    def step(self):
+        for bot_id in self.robot_times:
+            self.robot_times[bot_id] += 1
+
+    def get_supply(self):
+        return 0

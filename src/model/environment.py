@@ -2,7 +2,7 @@ from math import cos, sin, radians
 from PIL import ImageTk
 from model.agent import Agent
 from model.behavior import SaboteurBehavior, CarefulBehavior, SmartBehavior, HonestBehavior, GreedyBehavior
-from model.market import Market
+from model.market import Market, RoundTripPriceMarket
 from model.navigation import Location
 from helpers.utils import norm, distance_between
 from random import randint, random
@@ -44,7 +44,8 @@ class Environment:
         # demand in items that "perfect" robots would collect per step
         self.demand = demand
         demand_converted = demand*nb_robots*robot_speed/(2*norm([food_x-nest_x, food_y-nest_y]))
-        self.market = Market(demand_converted, max_price)
+        # self.market = Market(demand_converted, max_price)
+        self.market = RoundTripPriceMarket(2*norm([food_x-nest_x, food_y-nest_y])/robot_speed, max_price)
         self.img = None
 
     def load_images(self):
@@ -245,7 +246,7 @@ class Environment:
     def deposit_food(self, robot):
         robot.drop_food()
         self.foraging_spawns[Location.NEST].pop(robot.id)
-        reward = self.market.sell_strawberry()
+        reward = self.market.sell_strawberry(robot.id)
         print(f"Strawberry sold for ${round(reward, 2)} by bot {robot.id}")
         self.payment_database.pay_reward(robot.id, reward=reward)
         self.payment_database.pay_creditors(robot.id, total_reward=reward)
