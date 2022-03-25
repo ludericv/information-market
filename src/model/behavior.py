@@ -8,7 +8,7 @@ import numpy as np
 from model.communication import CommunicationSession
 from model.navigation import Location, NavigationTable
 from model.strategy import WeightedAverageAgeStrategy
-from helpers.utils import get_orientation_from_vector, norm, InsufficientFundsException
+from helpers.utils import get_orientation_from_vector, norm, InsufficientFundsException, NoInformationSoldException
 
 
 class State(Enum):
@@ -63,6 +63,8 @@ class HonestBehavior(Behavior):
                         self.navigation_table.replace_target(location, new_target)
                         break
                     except InsufficientFundsException:
+                        pass
+                    except NoInformationSoldException:
                         pass
 
     def step(self, sensors, api):
@@ -171,6 +173,8 @@ class CarefulBehavior(HonestBehavior):
                                 self.combine_pending_information(location)
                     except InsufficientFundsException:
                         pass
+                    except NoInformationSoldException:
+                        pass
 
     def combine_pending_information(self, location):
         distances = [t.get_distance() for t in self.pending_information[location].values()]
@@ -229,6 +233,8 @@ class SmartBehavior(HonestBehavior):
                                 self.pending_information[location][bot_id] = other_target
                     except InsufficientFundsException:
                         pass
+                    except NoInformationSoldException:
+                        pass
 
     @staticmethod
     def difference_score(current_vector, bought_vector):
@@ -267,3 +273,12 @@ class GreedyBehavior(HonestBehavior):
         t = copy.deepcopy(self.navigation_table.get_target(location))
         t.age = 1  # t.age - 10 if t.age > 10 else 1
         return t
+
+
+class FreeRiderBehavior(SmartBehavior):
+    def __init__(self):
+        super().__init__()
+        self.color = "pink"
+
+    def get_target(self, location):
+        return None

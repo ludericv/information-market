@@ -1,3 +1,4 @@
+from enum import Enum
 from math import atan2, pi, radians
 import numpy as np
 
@@ -29,3 +30,13 @@ def distance_between(robot1, robot2):
 
 class InsufficientFundsException(Exception):
     pass
+
+
+class NoInformationSoldException(Exception):
+    pass
+
+
+class CommunicationState(Enum):
+    OPEN = 1
+    PROCESSING = 2
+    ON_COOLDOWN = 3

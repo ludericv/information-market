@@ -1,17 +1,17 @@
 import copy
+
 from helpers import random_walk as rw
 from random import random, choices, gauss
 from math import sin, cos, radians
 from tkinter import LAST
 from collections import deque
 
-from model.payment import FixedSharePaymentSystem, TimeVaryingSharePaymentSystem
 from model.behavior import State
 from model.communication import CommunicationSession
 from model.navigation import Location
 import numpy as np
 
-from helpers.utils import get_orientation_from_vector, rotate, InsufficientFundsException
+from helpers.utils import get_orientation_from_vector, rotate, InsufficientFundsException, CommunicationState
 
 
 class AgentAPI:
@@ -39,6 +39,11 @@ class Agent:
         self.items_collected = 0
         self._carries_food = False
 
+        self._communication_cooldown = 25
+        self._comm_stop_time = 5
+        self._time_since_last_comm = self._comm_stop_time + self._communication_cooldown + 1
+        self.comm_state = CommunicationState.OPEN
+
         self.orientation = random() * 360  # 360 degree angle
         self.noise_mu = gauss(noise_mu, noise_musd)
         if random() >= 0.5:
@@ -57,7 +62,7 @@ class Agent:
 
     def __str__(self):
         return f"ID: {self.id}\n" \
-               f"state: {self.behavior.state}\n" \
+               f"state: {self.comm_state.name}\n" \
                f"expected food at: ({round(self.pos[0] + rotate(self.behavior.navigation_table.get_location_vector(Location.FOOD), self.orientation)[0])}, {round(self.pos[1] + rotate(self.behavior.navigation_table.get_location_vector(Location.FOOD), self.orientation)[1])}), \n" \
                f"   known: {self.behavior.navigation_table.is_location_known(Location.FOOD)}\n" \
                f"expected nest at: ({round(self.pos[0] + rotate(self.behavior.navigation_table.get_location_vector(Location.NEST), self.orientation)[0])}, {round(self.pos[1] + rotate(self.behavior.navigation_table.get_location_vector(Location.NEST), self.orientation)[1])}), \n" \
@@ -86,8 +91,9 @@ class Agent:
 
     def communicate(self, neighbors):
         self.previous_nav = copy.deepcopy(self.behavior.navigation_table)
-        session = CommunicationSession(self, neighbors, self.info_cost)
-        self.behavior.communicate(session)
+        if self.comm_state == CommunicationState.OPEN:
+            session = CommunicationSession(self, neighbors, self.info_cost)
+            self.behavior.communicate(session)
         self.new_nav = self.behavior.navigation_table
         self.behavior.navigation_table = self.previous_nav
 
@@ -95,12 +101,14 @@ class Agent:
         self.behavior.navigation_table = self.new_nav
         sensors = self.environment.get_sensors(self)
         # self.check_food(sensors)
-        self.behavior.step(sensors, AgentAPI(self))
-        try:
-            self.environment.payment_database.apply_cost(self.id, self.fuel_cost)
-            self.move()
-        except InsufficientFundsException:
-            pass
+        if not self.comm_state == CommunicationState.PROCESSING:
+            self.behavior.step(sensors, AgentAPI(self))
+            try:
+                self.environment.payment_database.apply_cost(self.id, self.fuel_cost)
+                self.move()
+            except InsufficientFundsException:
+                pass
+        self.update_communication_state()
         self.update_trace()
 
     def get_target_from_behavior(self, location):
@@ -240,3 +248,14 @@ class Agent:
 
     def add_creditor(self, creditor_id):
         self.environment.payment_database.add_creditor(self.id, creditor_id)
+
+    def update_communication_state(self):
+        self._time_since_last_comm += 1
+        if self._time_since_last_comm > self._comm_stop_time + self._communication_cooldown:
+            self.comm_state = CommunicationState.OPEN
+        elif self._time_since_last_comm > self._comm_stop_time:
+            self.comm_state = CommunicationState.ON_COOLDOWN
+
+    def communication_happened(self):
+        self._time_since_last_comm = 0
+        self.comm_state = CommunicationState.PROCESSING

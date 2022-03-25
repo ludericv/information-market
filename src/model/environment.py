@@ -1,7 +1,8 @@
 from math import cos, sin, radians
 from PIL import ImageTk
 from model.agent import Agent
-from model.behavior import SaboteurBehavior, CarefulBehavior, SmartBehavior, HonestBehavior, GreedyBehavior
+from model.behavior import SaboteurBehavior, CarefulBehavior, SmartBehavior, HonestBehavior, GreedyBehavior, \
+    FreeRiderBehavior
 from model.market import Market, RoundTripPriceMarket
 from model.navigation import Location
 from helpers.utils import norm, distance_between
@@ -102,7 +103,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=GreedyBehavior(),  # Line that changes
+                          behavior=FreeRiderBehavior(),  # Line that changes
                           environment=self)
             self.population.append(robot)
 
