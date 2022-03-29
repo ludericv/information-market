@@ -43,7 +43,7 @@ def run(config):
     nb_honest = config.parameters["NB_HONEST"]
     nb_saboteur = config.parameters["NB_ROBOTS"] - nb_honest
     controller.start_simulation()
-    filename = f"{nb_honest}smart_t25_{nb_saboteur}greedy_50_infocost_fixed.txt"
+    filename = f"{nb_honest}testProco_t25_{nb_saboteur}greedy_50_infocost_fixed.txt"
     with open(f"../data/payment_types/rewards/{filename}", "a") as file:
         file.write(controller.get_reward_stats())
     with open(f"../data/payment_types/items_collected/{filename}", "a") as file:

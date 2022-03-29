@@ -236,6 +236,9 @@ class Agent:
     def radius(self):
         return self._radius
 
+    def reward(self):
+        return self.environment.payment_database.get_reward(self.id)
+
     def carries_food(self):
         return self._carries_food
 

@@ -248,7 +248,7 @@ class Environment:
         robot.drop_food()
         self.foraging_spawns[Location.NEST].pop(robot.id)
         reward = self.market.sell_strawberry(robot.id)
-        print(f"Strawberry sold for ${round(reward, 2)} by bot {robot.id}")
+        # print(f"Strawberry sold for ${round(reward, 2)} by bot {robot.id}")
         self.payment_database.pay_reward(robot.id, reward=reward)
         self.payment_database.pay_creditors(robot.id, total_reward=reward)
 

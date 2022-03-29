@@ -182,7 +182,7 @@ def line_hist(values, precision, alpha=1.0, color=None):
 
 def supply_demand_simulation():
     n_bots = 25
-    demand = 1.2
+    demand = 0.3
     max_price = 3
     creditor_share = 0.5
     static_rewards = []

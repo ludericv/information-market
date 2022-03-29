@@ -34,7 +34,7 @@ class Market:
 
     def sell_strawberry(self, robot_id):
         self.supply_during_current_step += 1
-        print(f"Supply = {np.sum(self.supply_history)}, demand = {self.demand}")
+        # print(f"Supply = {np.sum(self.supply_history)}, demand = {self.demand}")
         return self._price
 
     def get_supply(self):
@@ -60,13 +60,28 @@ class RoundTripPriceMarket:
             return self.max_price
 
         price = self.max_price*np.exp((self.min_time - self.robot_times[robot_id])/self.min_time)
-        print(f"{price} for {self.robot_times[robot_id]} (min of {self.min_time})")
+        # print(f"{price} for {self.robot_times[robot_id]} (min of {self.min_time})")
         self.robot_times[robot_id] = 0
         return price
 
     def step(self):
         for bot_id in self.robot_times:
             self.robot_times[bot_id] += 1
+
+    def get_supply(self):
+        return 0
+
+
+class FixedPriceMarket:
+    def __init__(self, max_price):
+        self.demand = 10
+        self.max_price = max_price
+
+    def sell_strawberry(self, robot_id):
+        return self.max_price
+
+    def step(self):
+        pass
 
     def get_supply(self):
         return 0

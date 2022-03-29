@@ -81,7 +81,7 @@ class PaymentDB:
         self.info_share = info_share
         for robot_id in population_ids:
             self.database[robot_id] = {"reward": initial_reward,
-                                       "payment_system": TimeVaryingSharePaymentSystem()}
+                                       "payment_system": FixedSharePaymentSystem()}
 
     def step(self):
         for robot_id in self.database:
