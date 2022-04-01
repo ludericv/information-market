@@ -53,7 +53,9 @@ class MainController:
                                        fuel_cost=self.config.parameters["FUEL_COST"],
                                        info_cost=self.config.parameters["INFO_COST"],
                                        demand=self.config.parameters["DEMAND"],
-                                       max_price=self.config.parameters["MAX_PRICE"]
+                                       max_price=self.config.parameters["MAX_PRICE"],
+                                       robot_comm_cooldown=self.config.parameters["COMM_COOLDOWN"],
+                                       robot_comm_stop_time=self.config.parameters["COMM_STOPTIME"]
                                        )
         self.tick = 0
 

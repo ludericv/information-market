@@ -17,7 +17,8 @@ class Environment:
     def __init__(self, width=500, height=500, nb_robots=30, nb_honest=29, robot_speed=3, robot_radius=5, comm_radius=25,
                  rdwalk_factor=0,
                  levi_factor=2, food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25, noise_mu=0,
-                 noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01, demand=15, max_price=3):
+                 noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01, demand=15, max_price=3,
+                 robot_comm_cooldown=10, robot_comm_stop_time=5):
         self.population = list()
         self.width = width
         self.height = height
@@ -26,6 +27,8 @@ class Environment:
         self.robot_speed = robot_speed
         self.robot_radius = robot_radius
         self.robot_communication_radius = comm_radius
+        self.robot_comm_cooldown=robot_comm_cooldown
+        self.robot_comm_stop_time=robot_comm_stop_time
         self.rdwalk_factor = rdwalk_factor
         self.levi_factor = levi_factor
         self.food = (food_x, food_y, food_radius)
@@ -89,7 +92,9 @@ class Environment:
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
                           behavior=SmartBehavior(threshold=0.25),  # Line that changes
-                          environment=self)
+                          environment=self,
+                          communication_cooldown=self.robot_comm_cooldown,
+                          communication_stop_time=self.robot_comm_stop_time)
             self.population.append(robot)
         for robot_id in range(self.nb_honest, self.nb_robots):
             robot = Agent(robot_id=robot_id,
@@ -104,7 +109,9 @@ class Environment:
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
                           behavior=FreeRiderBehavior(),  # Line that changes
-                          environment=self)
+                          environment=self,
+                          communication_cooldown=self.robot_comm_cooldown,
+                          communication_stop_time=self.robot_comm_stop_time)
             self.population.append(robot)
 
     def get_sensors(self, robot):

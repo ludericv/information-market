@@ -29,7 +29,8 @@ class Agent:
 
     def __init__(self, robot_id, x, y, speed, radius,
                  noise_mu, noise_musd, noise_sd, fuel_cost,
-                 initial_reward, info_cost, behavior, environment):
+                 initial_reward, info_cost, behavior, environment, communication_cooldown,
+                 communication_stop_time):
 
         self.id = robot_id
         self.pos = np.array([x, y]).astype('float64')
@@ -39,8 +40,8 @@ class Agent:
         self.items_collected = 0
         self._carries_food = False
 
-        self._communication_cooldown = 25
-        self._comm_stop_time = 5
+        self._communication_cooldown = communication_cooldown
+        self._comm_stop_time = communication_stop_time
         self._time_since_last_comm = self._comm_stop_time + self._communication_cooldown + 1
         self.comm_state = CommunicationState.OPEN
 
@@ -258,7 +259,8 @@ class Agent:
             self.comm_state = CommunicationState.OPEN
         elif self._time_since_last_comm > self._comm_stop_time:
             self.comm_state = CommunicationState.ON_COOLDOWN
+        else:
+            self.comm_state = CommunicationState.PROCESSING
 
     def communication_happened(self):
         self._time_since_last_comm = 0
-        self.comm_state = CommunicationState.PROCESSING

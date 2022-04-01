@@ -64,31 +64,40 @@ def compare_behaviors():
                  "22careful_3saboteur", "22smart_t25_3saboteur",  # "22smart_t25_3greedy",
                  "20careful_s3_5saboteur", "20smart_t25_5saboteur"  # , "20smart_t25_5greedy"
                  ]
-    show_run_difference(filenames, by=2)
+    show_run_proportions(filenames, by=2)
     filenames = ["25honest", "25careful", "25smart_t25",
                  "24honest_1saboteur", "24careful_s3_1saboteur", "24smart_t25_1saboteur"]
     rewards_plot(filenames)
-    show_run_difference(filenames, by=3)
+    show_run_proportions(filenames, by=3)
     filenames = [
         "25honest", "25smart_t10", "25smart_t25", "25smart_t40_0saboteur", "25smart_t100_0saboteur",
         "24honest_1saboteur", "24smart_t10_1saboteur", "24smart_t25_1saboteur", "24smart_t40_1saboteur",
         "24smart_t100_1saboteur"
     ]
-    show_run_difference(filenames, by=5)
+    show_run_proportions(filenames, by=5)
     filenames = ["24smart_t25_1greedy", "24smart_t25_1greedy_minus10",
                  "22smart_t25_3greedy", "22smart_t25_3greedy_minus10",
                  "20smart_t25_5greedy", "20smart_t25_5greedy_minus10"]
-    show_run_difference(filenames, by=2)
+    show_run_proportions(filenames, by=2)
 
 
 def compare_payment_types():
     filenames = []
     for i in [25, 24, 22, 20]:
-        j = 25-i
+        j = 25 - i
         filenames.append(f"{i}smart_t25_{j}greedy_50_infocost_fixed")
         filenames.append(f"{i}smart_t25_{j}greedy_50_infocost_timevarying")
     show_run_difference(filenames, by=2, comparison_on="payment_types", metric="rewards")
-    show_run_difference([filenames[i] for i in [1,3,5,7]], by=4, comparison_on="payment_types", metric="rewards")
+    show_run_difference([filenames[i] for i in [1, 3, 5, 7]], by=4, comparison_on="payment_types", metric="rewards")
+
+
+def compare_stop_time():
+    filenames = []
+    for i in [25, 23, 20]:
+        j = 25 - i
+        for cd in [10, 30, 60]:
+            filenames.append(f"{i}smart_t25_{j}freerider_{cd}+10")
+    show_run_proportions(filenames, by=3, comparison_on="stop_time", metric="rewards")
 
 
 def honest_vs_careful():
@@ -158,7 +167,44 @@ def show_run_difference(filenames, by=1, comparison_on="behaviors", metric="rewa
         frame.errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
         if n_bad > 0:
             frame.errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^',
-                                   c=(1, 0, 0, 1))
+                           c=(1, 0, 0, 1))
+    plt.show()
+
+
+def show_run_proportions(filenames, by=1, comparison_on="behaviors", metric="rewards"):
+    nrows = len(filenames) // by
+    ncols = by
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharey=True, sharex=True)
+    print(axs)
+    fig.set_size_inches(8 * ncols, 6 * nrows)
+    for i, filename in enumerate(filenames):
+        row = i // by
+        col = i % by
+        df = pd.read_csv(f"../data/{comparison_on}/{metric}/{filename}.txt", header=None)
+        n_honest = int(re.search('[0-9]+', filename).group())
+        n_bad = 25 - n_honest
+
+        if nrows == 1 and ncols == 1:
+            frame = axs
+        elif nrows == 1 or ncols == 1:
+            frame = axs[row] if ncols == 1 else axs[col]
+        else:
+            frame = axs[row, col]
+
+        frame.set_title(filename)
+        frame.set_ylabel(f"proportion of {metric} (%)")
+        frame.set_xlabel("run")
+        totals = df.apply(np.sum, axis=1)
+        means = df.iloc[:, :n_honest].apply(np.mean, axis=1) * 100 / totals
+        means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1) * 100 / totals
+        stds = df.iloc[:, :n_honest].apply(np.std, axis=1) * 100 / totals
+        stds_bad = df.iloc[:, -n_bad:].apply(np.std, axis=1) * 100 / totals
+        res = pd.concat([means, stds, means_bad, stds_bad], axis=1, keys=['mean', 'sd', 'mean_b', 'sd_b'])
+        res = res.sort_values(by='mean')
+        frame.errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
+        if n_bad > 0:
+            frame.errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^',
+                           c=(1, 0, 0, 1))
     plt.show()
 
 
@@ -186,22 +232,23 @@ def supply_demand_simulation():
     max_price = 3
     creditor_share = 0.5
     static_rewards = []
-    supplies = range(1, n_bots+1)
+    supplies = range(1, n_bots + 1)
     active_rewards = []
     active_only_rewards = []
     for supply in supplies:
         n_active = supply
-        reward_per_active = exponential_model(demand=demand*n_bots, max_price=max_price, supply=supply)
-        static_reward = n_active*(creditor_share/(n_bots-1))*reward_per_active
+        reward_per_active = exponential_model(demand=demand * n_bots, max_price=max_price, supply=supply)
+        static_reward = n_active * (creditor_share / (n_bots - 1)) * reward_per_active
         static_rewards.append(static_reward)
         active_reward = (((n_active - 1) / (n_bots - 1) * creditor_share) + 1 - creditor_share) * reward_per_active
         active_rewards.append(active_reward)
-        active_only_rewards.append((1-creditor_share) * reward_per_active)
+        active_only_rewards.append((1 - creditor_share) * reward_per_active)
     plt.plot(supplies, static_rewards)
     plt.plot(supplies, active_only_rewards)
     plt.plot(supplies, active_rewards)
     plt.axhline(y=max(static_rewards), color='r', linestyle='-')
-    plt.legend(["information", "foraging", "information + foraging", f"information max ={round(max(static_rewards), 2)}"])
+    plt.legend(
+        ["information", "foraging", "information + foraging", f"information max ={round(max(static_rewards), 2)}"])
     plt.title(f"creditor share = {creditor_share}, demand = {demand}")
     plt.xlabel("supply")
     plt.ylabel("reward")
@@ -209,6 +256,8 @@ def supply_demand_simulation():
 
 
 if __name__ == '__main__':
-    supply_demand_simulation()
+    # supply_demand_simulation()
     # compare_behaviors()
     # compare_payment_types()
+    compare_stop_time()
+    # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")

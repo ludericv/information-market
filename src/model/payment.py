@@ -31,10 +31,11 @@ class FixedSharePaymentSystem(PaymentSystem):
     def get_shares_mapping(self, total_amount):
         nb_of_creditors = sum(self._creditors.values())
         shares_mapping = {creditor_id: 0 for creditor_id in self._creditors}
+        share = 0
         if nb_of_creditors > 0:
             share = total_amount / nb_of_creditors
             for creditor_id in self._creditors.elements():
-                shares_mapping[creditor_id] += share * self._creditors[creditor_id]
+                shares_mapping[creditor_id] += share
         return shares_mapping
 
     def add_creditor(self, creditor_id):
@@ -96,8 +97,8 @@ class PaymentDB:
     def pay_creditors(self, debitor_id, total_reward=1):
         mapping = self.database[debitor_id]["payment_system"].get_shares_mapping(self.info_share)
         for creditor_id, share in mapping.items():
-            self.database[debitor_id]["reward"] -= share
-            self.database[creditor_id]["reward"] += share
+            self.database[debitor_id]["reward"] -= share * total_reward
+            self.database[creditor_id]["reward"] += share * total_reward
         self.database[debitor_id]["payment_system"].reset_creditors()
 
     def get_reward(self, robot_id):
