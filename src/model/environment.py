@@ -91,7 +91,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=SmartBehavior(threshold=0.25),  # Line that changes
+                          behavior=HonestBehavior(),  # Line that changes
                           environment=self,
                           communication_cooldown=self.robot_comm_cooldown,
                           communication_stop_time=self.robot_comm_stop_time)
@@ -108,7 +108,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=FreeRiderBehavior(),  # Line that changes
+                          behavior=SaboteurBehavior(),  # Line that changes
                           environment=self,
                           communication_cooldown=self.robot_comm_cooldown,
                           communication_stop_time=self.robot_comm_stop_time)
@@ -186,12 +186,14 @@ class Environment:
                                          self.food[1] - self.food[2],
                                          self.food[0] + self.food[2],
                                          self.food[1] + self.food[2],
-                                         fill="green")
+                                         fill="green",
+                                         outline="")
         nest_circle = canvas.create_oval(self.nest[0] - self.nest[2],
                                          self.nest[1] - self.nest[2],
                                          self.nest[0] + self.nest[2],
                                          self.nest[1] + self.nest[2],
-                                         fill="orange")
+                                         fill="orange",
+                                         outline="")
 
     def get_best_bot_id(self):
         best_bot_id = 0
@@ -201,9 +203,8 @@ class Environment:
         return best_bot_id
 
     def draw_strawberries(self, canvas):
-        for id, pos in self.foraging_spawns[Location.FOOD].items():
+        for bot_id, pos in self.foraging_spawns[Location.FOOD].items():
             canvas.create_image(pos[0] - 8, pos[1] - 8, image=self.img, anchor='nw')
-            # res = canvas.create_rectangle(pos[0]-4, pos[1]-4, pos[0]+4, pos[1]+4, fill="red")
 
     def draw_best_bot(self, canvas):
         circle = canvas.create_oval(self.population[self.best_bot_id].pos[0] - 4,
