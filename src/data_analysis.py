@@ -3,6 +3,7 @@ import re
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from model.market import exponential_model, logistics_model
 
@@ -81,14 +82,27 @@ def compare_behaviors():
     show_run_proportions(filenames, by=2)
 
 
+def powerpoint_plots():
+    filenames = ["24smart_t25_1greedy",
+                 "22smart_t25_3greedy",
+                 "20smart_t25_5greedy"]
+    show_run_proportions(filenames, by=3)
+    make_violin_plots(filenames, by=3)
+    filenames = ["24smart_t25_1saboteur",
+                 "22smart_t25_3saboteur",
+                 "20smart_t25_5saboteur"]
+    show_run_proportions(filenames, by=3)
+
+
 def compare_payment_types():
     filenames = []
     for i in [25, 24, 22, 20]:
         j = 25 - i
         filenames.append(f"{i}smart_t25_{j}greedy_50_infocost_fixed")
         filenames.append(f"{i}smart_t25_{j}greedy_50_infocost_timevarying")
-    show_run_difference(filenames, by=2, comparison_on="payment_types", metric="rewards")
-    show_run_difference([filenames[i] for i in [1, 3, 5, 7]], by=4, comparison_on="payment_types", metric="rewards")
+    show_run_proportions(filenames, by=2, comparison_on="payment_types", metric="rewards")
+    show_run_proportions([filenames[i] for i in [1, 3, 5, 7]], by=4, comparison_on="payment_types", metric="rewards")
+    make_violin_plots([filenames[i] for i in [3, 5, 7]], by=3, comparison_on="payment_types", metric="rewards")
 
 
 def compare_stop_time():
@@ -176,14 +190,18 @@ def show_run_proportions(filenames, by=1, comparison_on="behaviors", metric="rew
     ncols = by
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharey=True, sharex=True)
     print(axs)
-    fig.set_size_inches(8 * ncols, 6 * nrows)
+    fig.set_size_inches(4 * ncols, 6 * nrows)
     for i, filename in enumerate(filenames):
         row = i // by
         col = i % by
         df = pd.read_csv(f"../data/{comparison_on}/{metric}/{filename}.txt", header=None)
         n_honest = int(re.search('[0-9]+', filename).group())
         n_bad = 25 - n_honest
-
+        honest_name = re.search('[a-z]+', filename.split("_")[0]).group()
+        bad_name = re.search('[a-z]+', filename.split("_")[2]).group()
+        colors = {"smart": "blue", "honest": "blue", "careful": "blue",
+                  "saboteur": "red",
+                  "greedy": "green"}
         if nrows == 1 and ncols == 1:
             frame = axs
         elif nrows == 1 or ncols == 1:
@@ -191,20 +209,21 @@ def show_run_proportions(filenames, by=1, comparison_on="behaviors", metric="rew
         else:
             frame = axs[row, col]
 
-        frame.set_title(filename)
+        totals = df.apply(np.sum, axis=1)
+        frame.set_title(f"{filename}, throughput = {round(np.mean(totals))}")
         frame.set_ylabel(f"proportion of {metric} (%)")
         frame.set_xlabel("run")
-        totals = df.apply(np.sum, axis=1)
+
         means = df.iloc[:, :n_honest].apply(np.mean, axis=1) * 100 / totals
         means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1) * 100 / totals
         stds = df.iloc[:, :n_honest].apply(np.std, axis=1) * 100 / totals
         stds_bad = df.iloc[:, -n_bad:].apply(np.std, axis=1) * 100 / totals
         res = pd.concat([means, stds, means_bad, stds_bad], axis=1, keys=['mean', 'sd', 'mean_b', 'sd_b'])
         res = res.sort_values(by='mean')
-        frame.errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
+        frame.errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^', c=colors[honest_name])
         if n_bad > 0:
             frame.errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^',
-                           c=(1, 0, 0, 1))
+                           c=colors[bad_name])
     plt.show()
 
 
@@ -255,9 +274,57 @@ def supply_demand_simulation():
     plt.show()
 
 
+def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="rewards"):
+    nrows = len(filenames) // by
+    ncols = by
+    fig, axs = plt.subplots(nrows=nrows, ncols=1, sharey=True, sharex=True)
+    print(axs)
+    fig.set_size_inches(3 * ncols, 6 * nrows)
+
+    for row in range(nrows):
+        row_df = pd.DataFrame(columns=["proportion", "behavior", "file"])
+        if nrows == 1:
+            frame = axs
+        else:
+            frame = axs[row]
+        frame.set_title(f"Individual reward share across subpopulations")
+        for col in range(ncols):
+            filename = filenames[row * ncols + col]
+            df = pd.read_csv(f"../data/{comparison_on}/{metric}/{filename}.txt", header=None)
+            n_honest = int(re.search('[0-9]+', filename).group())
+            honest_name = re.search('[a-z]+', filename.split("_")[0]).group()
+            bad_name = re.search('[a-z]+', filename.split("_")[2]).group()
+            n_bad = 25 - n_honest
+
+            totals = df.apply(np.sum, axis=1)
+            print(totals)
+            means = df.iloc[:, :n_honest].apply(np.mean, axis=1) * 100 / totals
+            means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1) * 100 / totals
+            # Draw a nested violinplot and split the violins for easier comparison
+
+            goods = pd.DataFrame(np.full(means.shape, honest_name))
+            bads = pd.DataFrame(np.full(means.shape, bad_name))
+            means = pd.concat([means, goods], axis=1)
+            means_bad = pd.concat([means_bad, bads], axis=1)
+            final_df = pd.concat([means, means_bad])
+            final_df.columns = ["proportion", "behavior"]
+            final_df["file"] = f"{n_honest} {honest_name} vs {n_bad} {bad_name}"
+            row_df = pd.concat([row_df, final_df])
+        row_df.index = [i for i in range(row_df.shape[0])]
+        print(row_df)
+        temp = pd.DataFrame(row_df.to_dict())
+        sns.violinplot(data=temp, x="file", y="proportion", hue="behavior",
+                       split=True, inner="quart", linewidth=1, ax=frame, palette="muted")
+        sns.despine(left=True)
+
+    plt.show()
+
+
 if __name__ == '__main__':
     # supply_demand_simulation()
     # compare_behaviors()
     # compare_payment_types()
-    compare_stop_time()
+    # compare_stop_time()
     # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")
+    # make_violin_plots(["20smart_t25_5saboteur", "22smart_t25_3saboteur"], by=2)
+    powerpoint_plots()
