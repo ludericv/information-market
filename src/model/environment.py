@@ -2,8 +2,8 @@ from math import cos, sin, radians
 from PIL import ImageTk
 from model.agent import Agent
 from model.behavior import SaboteurBehavior, CarefulBehavior, SmartBehavior, HonestBehavior, GreedyBehavior, \
-    FreeRiderBehavior
-from model.market import Market, RoundTripPriceMarket
+    FreeRiderBehavior, SmartboteurBehavior
+from model.market import Market, RoundTripPriceMarket, FixedPriceMarket
 from model.navigation import Location
 from helpers.utils import norm, distance_between
 from random import randint, random
@@ -17,7 +17,7 @@ class Environment:
     def __init__(self, width=500, height=500, nb_robots=30, nb_honest=29, robot_speed=3, robot_radius=5, comm_radius=25,
                  rdwalk_factor=0,
                  levi_factor=2, food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25, noise_mu=0,
-                 noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01, demand=15, max_price=3,
+                 noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01, demand=15, max_price=1,
                  robot_comm_cooldown=10, robot_comm_stop_time=5):
         self.population = list()
         self.width = width
@@ -49,7 +49,8 @@ class Environment:
         self.demand = demand
         demand_converted = demand*nb_robots*robot_speed/(2*norm([food_x-nest_x, food_y-nest_y]))
         # self.market = Market(demand_converted, max_price)
-        self.market = RoundTripPriceMarket(2*norm([food_x-nest_x, food_y-nest_y])/robot_speed, max_price)
+        # self.market = RoundTripPriceMarket(2*norm([food_x-nest_x, food_y-nest_y])/robot_speed, max_price)
+        self.market = FixedPriceMarket(max_price)
         self.img = None
 
     def load_images(self):
@@ -91,7 +92,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=HonestBehavior(),  # Line that changes
+                          behavior=SmartBehavior(threshold=0.25),  # Line that changes
                           environment=self,
                           communication_cooldown=self.robot_comm_cooldown,
                           communication_stop_time=self.robot_comm_stop_time)
@@ -108,7 +109,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=SaboteurBehavior(),  # Line that changes
+                          behavior=SmartboteurBehavior(),  # Line that changes
                           environment=self,
                           communication_cooldown=self.robot_comm_cooldown,
                           communication_stop_time=self.robot_comm_stop_time)

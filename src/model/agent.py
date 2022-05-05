@@ -187,7 +187,7 @@ class Agent:
                                     fill=self.behavior.color,
                                     outline=self.colors[self.behavior.state],
                                     width=3)
-        # self.draw_comm_radius(canvas)
+        self.draw_comm_radius(canvas)
         # self.draw_goal_vector(canvas)
         self.draw_orientation(canvas)
         # self.draw_trace(canvas)

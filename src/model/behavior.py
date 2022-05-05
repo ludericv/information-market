@@ -282,3 +282,15 @@ class FreeRiderBehavior(SmartBehavior):
 
     def get_target(self, location):
         return None
+
+
+class SmartboteurBehavior(SmartBehavior):
+    def __init__(self):
+        super().__init__()
+        self.color = "red"
+
+    def get_target(self, location):
+        t = copy.deepcopy(self.navigation_table.get_target(location))
+        t.rotate(90)
+        return t
+
