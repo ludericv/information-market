@@ -88,10 +88,21 @@ def powerpoint_plots():
                  "20smart_t25_5greedy"]
     show_run_proportions(filenames, by=3)
     make_violin_plots(filenames, by=3)
+    filenames = ["24smart_t25_1greedy_SoR_50",
+                 "22smart_t25_3greedy_SoR_50",
+                 "20smart_t25_5greedy_SoR_50"]
+    make_violin_plots(filenames, by=3, comparison_on="payment_types")
+    show_run_proportions(filenames, by=3, comparison_on="payment_types")
     filenames = ["24smart_t25_1saboteur",
                  "22smart_t25_3saboteur",
                  "20smart_t25_5saboteur"]
+    make_violin_plots(filenames, by=3)
     show_run_proportions(filenames, by=3)
+    filenames = ["24smart_t25_1saboteur_SoR_50",
+                 "22smart_t25_3saboteur_SoR_50",
+                 "20smart_t25_5saboteur_SoR_50"]
+    make_violin_plots(filenames, by=3, comparison_on="payment_types")
+    show_run_proportions(filenames, by=3, comparison_on="payment_types")
 
 
 def compare_payment_types():
@@ -278,11 +289,16 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
     nrows = len(filenames) // by
     ncols = by
     fig, axs = plt.subplots(nrows=nrows, ncols=1, sharey=True, sharex=True)
-    print(axs)
     fig.set_size_inches(3 * ncols, 6 * nrows)
+    palette = {
+        "smart": "cornflowerblue",
+        "greedy": "limegreen",
+        "saboteur": "firebrick",
+    }
+#    sns.set_palette(palette)
 
     for row in range(nrows):
-        row_df = pd.DataFrame(columns=["proportion", "behavior", "file"])
+        row_df = pd.DataFrame(columns=["proportion(%)", "behavior", "file"])
         if nrows == 1:
             frame = axs
         else:
@@ -297,24 +313,27 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
             n_bad = 25 - n_honest
 
             totals = df.apply(np.sum, axis=1)
-            print(totals)
-            means = df.iloc[:, :n_honest].apply(np.mean, axis=1) * 100 / totals
-            means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1) * 100 / totals
+            # print(totals)
+            df_rel = df.div(totals, axis=0) * 100
+            # means = df.iloc[:, :n_honest].apply(np.mean, axis=1) * 100 / totals
+            honest_flat = pd.DataFrame(df_rel.iloc[:, :n_honest].to_numpy().flatten())
+            bad_flat = pd.DataFrame(df_rel.iloc[:, -n_bad:].to_numpy().flatten())
+
+            # means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1) * 100 / totals
             # Draw a nested violinplot and split the violins for easier comparison
 
-            goods = pd.DataFrame(np.full(means.shape, honest_name))
-            bads = pd.DataFrame(np.full(means.shape, bad_name))
-            means = pd.concat([means, goods], axis=1)
-            means_bad = pd.concat([means_bad, bads], axis=1)
-            final_df = pd.concat([means, means_bad])
-            final_df.columns = ["proportion", "behavior"]
+            goods = pd.DataFrame(np.full(honest_flat.shape, honest_name))
+            bads = pd.DataFrame(np.full(honest_flat.shape, bad_name))
+            honest_flat = pd.concat([honest_flat, goods], axis=1)
+            bad_flat = pd.concat([bad_flat, bads], axis=1)
+            final_df = pd.concat([honest_flat, bad_flat])
+            final_df.columns = ["proportion(%)", "behavior"]
             final_df["file"] = f"{n_honest} {honest_name} vs {n_bad} {bad_name}"
             row_df = pd.concat([row_df, final_df])
         row_df.index = [i for i in range(row_df.shape[0])]
-        print(row_df)
         temp = pd.DataFrame(row_df.to_dict())
-        sns.violinplot(data=temp, x="file", y="proportion", hue="behavior",
-                       split=True, inner="quart", linewidth=1, ax=frame, palette="muted")
+        sns.violinplot(data=temp, x="file", y="proportion(%)", hue="behavior",
+                       split=True, inner="quart", linewidth=1, ax=frame, palette=palette)
         sns.despine(left=True)
 
     plt.show()
