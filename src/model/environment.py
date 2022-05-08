@@ -49,15 +49,17 @@ class Environment:
         self.demand = demand
         demand_converted = demand*nb_robots*robot_speed/(2*norm([food_x-nest_x, food_y-nest_y]))
         # self.market = Market(demand_converted, max_price)
-        # self.market = RoundTripPriceMarket(2*norm([food_x-nest_x, food_y-nest_y])/robot_speed, max_price)
-        self.market = FixedPriceMarket(max_price)
+        self.market = RoundTripPriceMarket(2*norm([food_x-nest_x, food_y-nest_y])/robot_speed, max_price)
+        # self.market = FixedPriceMarket(max_price)
         self.img = None
+        self.timestep = 0
 
     def load_images(self):
         self.img = ImageTk.PhotoImage(file="../assets/strawberry.png")
 
     def step(self):
         # compute neighbors
+        self.timestep += 1
         pop_size = len(self.population)
         neighbors_table = [[] for i in range(pop_size)]
         for id1 in range(pop_size):

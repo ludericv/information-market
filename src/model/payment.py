@@ -1,7 +1,17 @@
 from abc import ABC, abstractmethod
-from collections import Counter
+from collections import Counter, deque
 
 from helpers.utils import InsufficientFundsException
+from model.navigation import Location
+
+
+class Transaction:
+    def __init__(self, buyer_id, seller_id, location, info_relative_angle, timestep):
+        self.buyer_id = buyer_id
+        self.seller_id = seller_id
+        self.location = location
+        self.relative_angle = info_relative_angle
+        self.timestep = timestep
 
 
 class PaymentSystem(ABC):
@@ -13,7 +23,7 @@ class PaymentSystem(ABC):
         pass
 
     @abstractmethod
-    def add_creditor(self, creditor_id):
+    def record_transaction(self, transaction: Transaction):
         pass
 
     def step(self):
@@ -31,15 +41,33 @@ class FixedSharePaymentSystem(PaymentSystem):
     def get_shares_mapping(self, total_amount):
         nb_of_creditors = sum(self._creditors.values())
         shares_mapping = {creditor_id: 0 for creditor_id in self._creditors}
-        share = 0
         if nb_of_creditors > 0:
             share = total_amount / nb_of_creditors
             for creditor_id in self._creditors.elements():
                 shares_mapping[creditor_id] += share
         return shares_mapping
 
-    def add_creditor(self, creditor_id):
-        self._creditors[creditor_id] += 1
+    def record_transaction(self, transaction: Transaction):
+        self._creditors[transaction.seller_id] += 1
+
+
+class LastKPaymentSystem(PaymentSystem):
+
+    def __init__(self, k=5):
+        super().__init__()
+        self._creditors = deque(maxlen=k)
+
+    def get_shares_mapping(self, total_amount):
+        if len(self._creditors) == 0:
+            return {}
+        shares_mapping = {creditor_id: 0 for creditor_id in self._creditors}
+        share = total_amount/len(self._creditors)
+        for creditor_id in self._creditors:
+            shares_mapping[creditor_id] += share
+        return shares_mapping
+
+    def record_transaction(self, transaction: Transaction):
+        self._creditors.append(transaction.seller_id)
 
 
 class TimeVaryingSharePaymentSystem(PaymentSystem):
@@ -62,10 +90,10 @@ class TimeVaryingSharePaymentSystem(PaymentSystem):
                 shares_mapping[creditor_id] += share
         return shares_mapping
 
-    def add_creditor(self, creditor_id):
-        self._creditors[creditor_id] += 1
-        if creditor_id not in self._creditor_times:
-            self._creditor_times[creditor_id] = 1
+    def record_transaction(self, transaction: Transaction):
+        self._creditors[transaction.seller_id] += 1
+        if transaction.seller_id not in self._creditor_times:
+            self._creditor_times[transaction.seller_id] = 1
 
     def step(self):
         for creditor_id in self._creditors:
@@ -76,13 +104,29 @@ class TimeVaryingSharePaymentSystem(PaymentSystem):
         self._creditor_times.clear()
 
 
+class TransactionPaymentSystem(PaymentSystem):
+
+    def __init__(self):
+        super().__init__()
+        self.transactions = set()
+
+    def get_shares_mapping(self, total_amount):
+        pass
+
+    def record_transaction(self, transaction: Transaction):
+        self.transactions.add(transaction)
+
+    def reset_creditors(self):
+        self.transactions.clear()
+
+
 class PaymentDB:
     def __init__(self, population_ids, initial_reward, info_share):
         self.database = {}
         self.info_share = info_share
         for robot_id in population_ids:
             self.database[robot_id] = {"reward": initial_reward,
-                                       "payment_system": FixedSharePaymentSystem()}
+                                       "payment_system": LastKPaymentSystem()}
 
     def step(self):
         for robot_id in self.database:
@@ -91,11 +135,12 @@ class PaymentDB:
     def pay_reward(self, robot_id, reward=1):
         self.database[robot_id]["reward"] += reward
 
-    def add_creditor(self, debitor_id, creditor_id):
-        self.database[debitor_id]["payment_system"].add_creditor(creditor_id)
+    def record_transaction(self, transaction: Transaction):
+        self.database[transaction.buyer_id]["payment_system"].record_transaction(transaction)
 
     def pay_creditors(self, debitor_id, total_reward=1):
         mapping = self.database[debitor_id]["payment_system"].get_shares_mapping(self.info_share)
+        print(mapping)
         for creditor_id, share in mapping.items():
             self.database[debitor_id]["reward"] -= share * total_reward
             self.database[creditor_id]["reward"] += share * total_reward

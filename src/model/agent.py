@@ -250,8 +250,9 @@ class Agent:
     def pickup_food(self):
         self._carries_food = True
 
-    def add_creditor(self, creditor_id):
-        self.environment.payment_database.add_creditor(self.id, creditor_id)
+    def record_transaction(self, transaction):
+        transaction.timestep = self.environment.timestep
+        self.environment.payment_database.record_transaction(transaction)
 
     def update_communication_state(self):
         self._time_since_last_comm += 1

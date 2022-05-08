@@ -1,7 +1,8 @@
 import copy
 
 from model.navigation import Location, Target
-from helpers.utils import rotate, CommunicationState, NoInformationSoldException
+from helpers.utils import rotate, CommunicationState, NoInformationSoldException, get_orientation_from_vector
+from model.payment import Transaction
 
 
 class CommunicationSession:
@@ -23,7 +24,12 @@ class CommunicationSession:
         if target is None:
             raise NoInformationSoldException
         target.rotate(self._neighbors[neighbor_id].orientation - self._client.orientation)
-        self._client.add_creditor(neighbor_id)
+        transaction = Transaction(self._client.id,
+                                  neighbor_id,
+                                  location,
+                                  get_orientation_from_vector(target.get_distance()),
+                                  None)
+        self._client.record_transaction(transaction)
         self._client.communication_happened()
         self._neighbors[neighbor_id].communication_happened()
         return target

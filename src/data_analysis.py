@@ -83,26 +83,36 @@ def compare_behaviors():
 
 
 def powerpoint_plots():
-    filenames = ["24smart_t25_1greedy",
-                 "22smart_t25_3greedy",
-                 "20smart_t25_5greedy"]
-    show_run_proportions(filenames, by=3)
-    make_violin_plots(filenames, by=3)
-    filenames = ["24smart_t25_1greedy_SoR_50",
-                 "22smart_t25_3greedy_SoR_50",
-                 "20smart_t25_5greedy_SoR_50"]
-    make_violin_plots(filenames, by=3, comparison_on="payment_types")
-    show_run_proportions(filenames, by=3, comparison_on="payment_types")
-    filenames = ["24smart_t25_1saboteur",
-                 "22smart_t25_3saboteur",
-                 "20smart_t25_5saboteur"]
-    make_violin_plots(filenames, by=3)
-    show_run_proportions(filenames, by=3)
-    filenames = ["24smart_t25_1saboteur_SoR_50",
-                 "22smart_t25_3saboteur_SoR_50",
-                 "20smart_t25_5saboteur_SoR_50"]
-    make_violin_plots(filenames, by=3, comparison_on="payment_types")
-    show_run_proportions(filenames, by=3, comparison_on="payment_types")
+    # filenames = ["24smart_t25_1greedy",
+    #              "22smart_t25_3greedy",
+    #              "20smart_t25_5greedy"]
+    # show_run_proportions(filenames, by=3)
+    # make_violin_plots(filenames, by=3)
+    # filenames = ["24smart_t25_1greedy_SoR_50",
+    #              "22smart_t25_3greedy_SoR_50",
+    #              "20smart_t25_5greedy_SoR_50"]
+    # make_violin_plots(filenames, by=3, comparison_on="payment_types")
+    # show_run_proportions(filenames, by=3, comparison_on="payment_types")
+    # filenames = ["24smart_t25_1saboteur",
+    #              "22smart_t25_3saboteur",
+    #              "20smart_t25_5saboteur"]
+    # make_violin_plots(filenames, by=3)
+    # show_run_proportions(filenames, by=3)
+    # filenames = ["24smart_t25_1saboteur_SoR_50",
+    #              "22smart_t25_3saboteur_SoR_50",
+    #              "20smart_t25_5saboteur_SoR_50"]
+    # make_violin_plots(filenames, by=3, comparison_on="payment_types")
+    # show_run_proportions(filenames, by=3, comparison_on="payment_types")
+    # filenames = ["24smart_t25_1smartboteur_SoR_50",
+    #              "22smart_t25_3smartboteur_SoR_50",
+    #              "20smart_t25_5smartboteur_SoR_50"]
+    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp")
+    # show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
+    filenames = ["24smart_t25_1smartboteur_SoR_50_lastKmarket",
+                 "22smart_t25_3smartboteur_SoR_50_lastKmarket",
+                 "20smart_t25_5smartboteur_SoR_50_lastKmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp")
+    show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
 
 
 def compare_payment_types():
@@ -212,6 +222,7 @@ def show_run_proportions(filenames, by=1, comparison_on="behaviors", metric="rew
         bad_name = re.search('[a-z]+', filename.split("_")[2]).group()
         colors = {"smart": "blue", "honest": "blue", "careful": "blue",
                   "saboteur": "red",
+                  "smartboteur": "red",
                   "greedy": "green"}
         if nrows == 1 and ncols == 1:
             frame = axs
@@ -294,6 +305,7 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
         "smart": "cornflowerblue",
         "greedy": "limegreen",
         "saboteur": "firebrick",
+        "smartboteur": "firebrick"
     }
 #    sns.set_palette(palette)
 
