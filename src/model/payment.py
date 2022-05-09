@@ -137,6 +137,20 @@ class TransactionPaymentSystem(PaymentSystem):
         self.transactions.clear()
 
 
+class DeltaTimePaymentSystem(TransactionPaymentSystem):
+    def get_shares_mapping(self, total_amount):
+        sorted_transactions = sorted([[t.seller_id, t.timestep] for t in self.transactions],
+                                     key=lambda elem: elem[1])
+        sorted_transactions.append([-1, self.timestep])
+        df = pd.DataFrame(sorted_transactions, columns=["seller", "time"])
+        df["dt"] = df["time"].diff().shift(-1) + 1
+        df = df[:-1]
+        df["score"] = 1 / df["dt"]
+        df["share"] = total_amount * df["score"] / df["score"].sum()
+        mapping = df.groupby("seller").sum().to_dict()["share"]
+        return mapping
+
+
 class SmallDeviationPaymentSystem(TransactionPaymentSystem):
     def get_shares_mapping(self, total_amount):
         df = pd.DataFrame([[t.seller_id, t.relative_angle, 0] for t in self.transactions],
@@ -161,7 +175,7 @@ class PaymentDB:
         self.info_share = info_share
         for robot_id in population_ids:
             self.database[robot_id] = {"reward": initial_reward,
-                                       "payment_system": SmallDeviationPaymentSystem()}
+                                       "payment_system": DeltaTimePaymentSystem()}
 
     def step(self):
         for robot_id in self.database:

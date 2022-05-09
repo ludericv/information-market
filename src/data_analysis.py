@@ -376,6 +376,22 @@ def test_angles():
     # print(mapping)
 
 
+def test_timedev():
+    sorted_transactions = [[1, 1], [2, 4], [3, 4], [1, 7], [5, 12]]
+    timestep = 20
+    total_amount = 0.5
+    sorted_transactions.append([-1, timestep])
+    df = pd.DataFrame(sorted_transactions, columns=["seller", "time"])
+    df["dt"] = df["time"].diff().shift(-1) + 1
+    df = df[:-1]
+    df["score"] = 1 / df["dt"]
+    df["share"] = total_amount * df["score"] / df["score"].sum()
+    mapping = df.groupby("seller").sum().to_dict()["share"]
+    print(df)
+
+    print(mapping)
+
+
 if __name__ == '__main__':
     # supply_demand_simulation()
     # compare_behaviors()
@@ -384,4 +400,5 @@ if __name__ == '__main__':
     # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")
     # make_violin_plots(["20smart_t25_5saboteur", "22smart_t25_3saboteur"], by=2)
     # powerpoint_plots()
-    test_angles()
+    # test_angles()
+    test_timedev()
