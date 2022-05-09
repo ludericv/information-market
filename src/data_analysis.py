@@ -351,6 +351,31 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
     plt.show()
 
 
+def test_angles():
+    df = pd.DataFrame([[1, 1, 0], [2, 4, 0], [1, 100, 0], [4, 359, 0]], columns=["seller", "angle", "alike"])
+    angle_window = 5
+    total_amount = 0.5
+    df["alike"] = df.apply(func=lambda row: pd.DataFrame(
+        [(df.iloc[:, 1] - row[1]) % 360,
+         (row[1] - df.iloc[:, 1]) % 360]).
+                           apply(min, axis=0).
+                           sum(),
+                           axis=1)
+    # pd.DataFrame([(df.iloc[:, 1] - row[1]) % 360, (row[1] - df.iloc[:, 1]) % 360]).apply(min, axis=1).sum()
+    # print(pd.DataFrame(
+    #     [(df.iloc[:, 1] - df.iloc[1, 1]) % 360,
+    #      (df.iloc[1, 1] - df.iloc[:, 1]) % 360]))
+    # print(df)
+    sellers_to_alike = df.groupby("seller").sum()
+    print(sellers_to_alike)
+    sellers_to_alike["alike"] = sellers_to_alike["alike"].sum() - sellers_to_alike["alike"]
+    sellers_to_alike = sellers_to_alike.to_dict()["alike"]
+    print(sellers_to_alike)
+    # total_shares = sum(sellers_to_alike.values())
+    # mapping = {seller: total_amount * sellers_to_alike[seller] / total_shares for seller in sellers_to_alike}
+    # print(mapping)
+
+
 if __name__ == '__main__':
     # supply_demand_simulation()
     # compare_behaviors()
@@ -358,4 +383,5 @@ if __name__ == '__main__':
     # compare_stop_time()
     # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")
     # make_violin_plots(["20smart_t25_5saboteur", "22smart_t25_3saboteur"], by=2)
-    powerpoint_plots()
+    # powerpoint_plots()
+    test_angles()
