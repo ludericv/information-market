@@ -80,6 +80,10 @@ def compare_behaviors():
                  "22smart_t25_3greedy", "22smart_t25_3greedy_minus10",
                  "20smart_t25_5greedy", "20smart_t25_5greedy_minus10"]
     show_run_proportions(filenames, by=2)
+    filenames = ["25honest", "25careful", "25smart_t25"]
+    show_run_difference(filenames, by=3, metric="items_collected")
+    filenames = ["24honest_1saboteur", "24careful_s3_1saboteur", "24smart_t25_1saboteur"]
+    show_run_difference(filenames, by=3, metric="items_collected")
 
 
 def powerpoint_plots():
@@ -195,7 +199,7 @@ def show_run_difference(filenames, by=1, comparison_on="behaviors", metric="rewa
     ncols = by
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharey=True, sharex=True)
     print(axs)
-    fig.set_size_inches(8 * ncols, 6 * nrows)
+    fig.set_size_inches(4 * ncols, 6 * nrows)
     for i, filename in enumerate(filenames):
         row = i // by
         col = i % by
@@ -211,17 +215,21 @@ def show_run_difference(filenames, by=1, comparison_on="behaviors", metric="rewa
         frame.set_title(filename)
         frame.set_ylabel(metric)
         frame.set_xlabel("run")
-        means = df.iloc[:, :n_honest].apply(np.mean, axis=1)
-        means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1)
-        stds = df.iloc[:, :n_honest].apply(np.std, axis=1)
-        stds_bad = df.iloc[:, -n_bad:].apply(np.std, axis=1)
-        res = pd.concat([means, stds, means_bad, stds_bad], axis=1, keys=['mean', 'sd', 'mean_b', 'sd_b'])
-        res = res.sort_values(by='mean')
-        frame.errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^')
-        if n_bad > 0:
-            frame.errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^',
-                           c=(1, 0, 0, 1))
+        run_difference_plot(df, frame, n_bad, n_honest)
     plt.show()
+
+
+def run_difference_plot(df, ax, n_bad, n_honest):
+    means = df.iloc[:, :n_honest].apply(np.mean, axis=1)
+    means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1)
+    stds = df.iloc[:, :n_honest].apply(np.std, axis=1)
+    stds_bad = df.iloc[:, -n_bad:].apply(np.std, axis=1)
+    res = pd.concat([means, stds, means_bad, stds_bad], axis=1, keys=['mean', 'sd', 'mean_b', 'sd_b'])
+    res = res.sort_values(by='mean')
+    ax.errorbar(range(res.shape[0]), res['mean'], res['sd'], linestyle='None', marker='^', c="tab:blue")
+    if n_bad > 0:
+        ax.errorbar(range(res.shape[0]), res['mean_b'], res['sd_b'], linestyle='None', marker='^',
+                    c=(1, 0, 0, 1))
 
 
 def show_run_proportions(filenames, by=1, comparison_on="behaviors", metric="rewards"):
@@ -237,7 +245,12 @@ def show_run_proportions(filenames, by=1, comparison_on="behaviors", metric="rew
         n_honest = int(re.search('[0-9]+', filename).group())
         n_bad = 25 - n_honest
         honest_name = re.search('[a-z]+', filename.split("_")[0]).group()
-        bad_name = re.search('[a-z]+', filename.split("_")[2]).group()
+        bad_name = ""
+        if n_bad > 0:
+            try:
+                bad_name = re.search('[a-z]+', filename.split("_")[2]).group()
+            except IndexError:
+                bad_name = re.search('[a-z]+', filename.split("_")[1]).group()
         colors = {"smart": "blue", "honest": "blue", "careful": "blue",
                   "saboteur": "red",
                   "smartboteur": "red",
@@ -371,6 +384,29 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
     plt.show()
 
 
+def items_collected_violin_plot(df, frame, n_good, n_bad, good_name="naive", bad_name="saboteur"):
+    palette = {
+        "naive": "cornflowerblue",
+        "smart": "cornflowerblue",
+        "greedy": "limegreen",
+        "saboteur": "firebrick",
+        "smartboteur": "firebrick"
+    }
+
+    honest_flat = pd.DataFrame(df.iloc[:, :n_good].to_numpy().flatten())
+    bad_flat = pd.DataFrame(df.iloc[:, -n_bad:].to_numpy().flatten())
+
+    goods = pd.DataFrame(np.full(honest_flat.shape, good_name))
+    bads = pd.DataFrame(np.full(honest_flat.shape, bad_name))
+    honest_flat = pd.concat([honest_flat, goods], axis=1)
+    bad_flat = pd.concat([bad_flat, bads], axis=1)
+    final_df = pd.concat([honest_flat, bad_flat])
+    final_df.columns = ["items collected", "behavior"]
+    print(final_df)
+    sns.violinplot(data=final_df, y="items collected", hue="behavior",
+                   split=True, inner="quart", linewidth=1, ax=frame)
+    sns.despine(left=True)
+
 def test_angles():
     df = pd.DataFrame([[1, 1, 0], [2, 4, 0], [1, 100, 0], [4, 359, 0]], columns=["seller", "angle", "alike"])
     angle_window = 5
@@ -412,6 +448,29 @@ def test_timedev():
     print(mapping)
 
 
+def thesis_plots():
+    # Chapter 8 - Section 1
+    # filename = "../data/behaviors/items_collected/25honest.txt"
+    # df = pd.read_csv(filename, header=None)
+    # general_boxplot_data = df.values.flatten()
+    # fig, axs = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 4]})
+    # fig.set_size_inches(10, 6)
+    # sns.violinplot(x=["all" for e in general_boxplot_data], y=general_boxplot_data, ax=axs[0], bw=.3)
+    # run_difference_plot(df, axs[1], 0, 25)
+    # #run_difference_plot(pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None), axs[2], 1, 24)
+    # fig.suptitle("Performance of Naïve Swarm")
+    # fig.supylabel("Number of Items Collected")
+    # fig.supxlabel("Run Considered")
+    # plt.show()
+
+    df = pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None)
+    fig, axs = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 4]})
+    fig.set_size_inches(10, 6)
+    items_collected_violin_plot(df, axs[0], 24, 1)
+    run_difference_plot(df, axs[1], 1, 24)
+    plt.show()
+
+
 if __name__ == '__main__':
     # supply_demand_simulation()
     # compare_behaviors()
@@ -419,5 +478,7 @@ if __name__ == '__main__':
     # compare_stop_time()
     # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")
     # make_violin_plots(["20smart_t25_5saboteur", "22smart_t25_3saboteur"], by=2)
-    powerpoint_plots()
+    # powerpoint_plots()
     # test_angles()
+    # test_timedev()
+    thesis_plots()

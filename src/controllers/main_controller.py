@@ -30,7 +30,9 @@ class MainController:
     def __init__(self, config: Configuration):
         self.config = config
         random_walk.set_parameters(random_walk_factor=self.config.parameters["RDWALK_FACTOR"],
-                                   levi_factor=self.config.parameters["LEVI_FACTOR"])
+                                   levi_factor=self.config.parameters["LEVI_FACTOR"]
+                                   # , max_levi_steps=self.config.parameters["SIMULATION_STEPS"]
+                                   )
         self.environment = Environment(width=self.config.parameters["WIDTH"],
                                        height=self.config.parameters["HEIGHT"],
                                        nb_robots=self.config.parameters["NB_ROBOTS"],
