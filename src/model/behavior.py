@@ -294,3 +294,13 @@ class SmartboteurBehavior(SmartBehavior):
         t.rotate(90)
         return t
 
+
+class SmartGreedyBehavior(SmartBehavior):
+    def __init__(self):
+        super().__init__()
+        self.color = "green"
+
+    def get_target(self, location):
+        t = copy.deepcopy(self.navigation_table.get_target(location))
+        t.age = 1
+        return t

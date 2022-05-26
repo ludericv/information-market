@@ -83,37 +83,55 @@ def compare_behaviors():
 
 
 def powerpoint_plots():
-    # filenames = ["24smart_t25_1greedy",
-    #              "22smart_t25_3greedy",
-    #              "20smart_t25_5greedy"]
+    filenames = ["24smart_t25_1greedy",
+                 "22smart_t25_3greedy",
+                 "20smart_t25_5greedy"]
     # show_run_proportions(filenames, by=3)
-    # make_violin_plots(filenames, by=3)
-    # filenames = ["24smart_t25_1greedy_SoR_50",
-    #              "22smart_t25_3greedy_SoR_50",
-    #              "20smart_t25_5greedy_SoR_50"]
-    # make_violin_plots(filenames, by=3, comparison_on="payment_types")
+    make_violin_plots(filenames, by=3)
+    filenames = ["24smart_t25_1greedy_SoR_50",
+                 "22smart_t25_3greedy_SoR_50",
+                 "20smart_t25_5greedy_SoR_50"]
+    make_violin_plots(filenames, by=3, comparison_on="payment_types")
     # show_run_proportions(filenames, by=3, comparison_on="payment_types")
-    # filenames = ["24smart_t25_1saboteur",
-    #              "22smart_t25_3saboteur",
-    #              "20smart_t25_5saboteur"]
-    # make_violin_plots(filenames, by=3)
+    filenames = ["24smart_t25_1saboteur",
+                 "22smart_t25_3saboteur",
+                 "20smart_t25_5saboteur"]
+    make_violin_plots(filenames, by=3)
     # show_run_proportions(filenames, by=3)
-    # filenames = ["24smart_t25_1saboteur_SoR_50",
-    #              "22smart_t25_3saboteur_SoR_50",
-    #              "20smart_t25_5saboteur_SoR_50"]
-    # make_violin_plots(filenames, by=3, comparison_on="payment_types")
+    filenames = ["24smart_t25_1saboteur_SoR_50",
+                 "22smart_t25_3saboteur_SoR_50",
+                 "20smart_t25_5saboteur_SoR_50"]
+    make_violin_plots(filenames, by=3, comparison_on="payment_types")
     # show_run_proportions(filenames, by=3, comparison_on="payment_types")
-    # filenames = ["24smart_t25_1smartboteur_SoR_50",
-    #              "22smart_t25_3smartboteur_SoR_50",
-    #              "20smart_t25_5smartboteur_SoR_50"]
-    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp")
-    # show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
-    filenames = ["24smart_t25_1smartboteur_SoR_50_lastKmarket",
-                 "22smart_t25_3smartboteur_SoR_50_lastKmarket",
-                 "20smart_t25_5smartboteur_SoR_50_lastKmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp")
-    show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
+    filenames = ["24smart_t25_1smartboteur_SoR_50",
+                 "22smart_t25_3smartboteur_SoR_50",
+                 "20smart_t25_5smartboteur_SoR_50"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Individual Share of Items Collected", metric="items_collected")
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Individual Share of Total Reward")
 
+    # show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
+    filenames = ["24smart_t25_1smartboteur_SoR_50_RTmarket",
+                 "22smart_t25_3smartboteur_SoR_50_RTmarket",
+                 "20smart_t25_5smartboteur_SoR_50_RTmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="SoR + Round Trip Time")
+    # show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
+    filenames = ["24smart_t25_1smartboteur_windowdev_50_RTmarket",
+                 "22smart_t25_3smartboteur_windowdev_50_RTmarket",
+                 "20smart_t25_5smartboteur_windowdev_50_RTmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Window Filter Payment, Round Trip Market")
+    # show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
+    filenames = ["24smart_t25_1smartboteur_error^2dev_50_RTmarket",
+                 "22smart_t25_3smartboteur_error^2dev_50_RTmarket",
+                 "20smart_t25_5smartboteur_error^2dev_50_RTmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Square Error Filter Payment, Round Trip Market")
+    filenames = ["24smart_t25_1smartboteur_deltatime_50_RTmarket",
+                 "22smart_t25_3smartboteur_deltatime_50_RTmarket",
+                 "20smart_t25_5smartboteur_deltatime_50_RTmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Delta Time Payment, Round Trip Market")
+    filenames = ["24smart_t25_1smartgreedy_windowdev_50_RTmarket",
+                 "22smart_t25_3smartgreedy_windowdev_50_RTmarket",
+                 "20smart_t25_5smartgreedy_windowdev_50_RTmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Window Filter Payment, Round Trip Market")
 
 def compare_payment_types():
     filenames = []
@@ -296,7 +314,8 @@ def supply_demand_simulation():
     plt.show()
 
 
-def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="rewards"):
+def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="rewards",
+                      title="Individual reward share across subpopulations"):
     nrows = len(filenames) // by
     ncols = by
     fig, axs = plt.subplots(nrows=nrows, ncols=1, sharey=True, sharex=True)
@@ -305,7 +324,8 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
         "smart": "cornflowerblue",
         "greedy": "limegreen",
         "saboteur": "firebrick",
-        "smartboteur": "firebrick"
+        "smartboteur": "firebrick",
+        "smartgreedy": "limegreen"
     }
 #    sns.set_palette(palette)
 
@@ -315,7 +335,7 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
             frame = axs
         else:
             frame = axs[row]
-        frame.set_title(f"Individual reward share across subpopulations")
+        frame.set_title(title)
         for col in range(ncols):
             filename = filenames[row * ncols + col]
             df = pd.read_csv(f"../data/{comparison_on}/{metric}/{filename}.txt", header=None)
@@ -399,6 +419,5 @@ if __name__ == '__main__':
     # compare_stop_time()
     # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")
     # make_violin_plots(["20smart_t25_5saboteur", "22smart_t25_3saboteur"], by=2)
-    # powerpoint_plots()
+    powerpoint_plots()
     # test_angles()
-    test_timedev()

@@ -2,7 +2,7 @@ from math import cos, sin, radians
 from PIL import ImageTk
 from model.agent import Agent
 from model.behavior import SaboteurBehavior, CarefulBehavior, SmartBehavior, HonestBehavior, GreedyBehavior, \
-    FreeRiderBehavior, SmartboteurBehavior
+    FreeRiderBehavior, SmartboteurBehavior, SmartGreedyBehavior
 from model.market import Market, RoundTripPriceMarket, FixedPriceMarket
 from model.navigation import Location
 from helpers.utils import norm, distance_between
@@ -111,7 +111,7 @@ class Environment:
                           initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=SmartboteurBehavior(),  # Line that changes
+                          behavior=SmartGreedyBehavior(),  # Line that changes
                           environment=self,
                           communication_cooldown=self.robot_comm_cooldown,
                           communication_stop_time=self.robot_comm_stop_time)

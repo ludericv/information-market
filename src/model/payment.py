@@ -118,6 +118,8 @@ class TransactionPaymentSystem(PaymentSystem):
         self.timestep += 1
 
     def get_shares_mapping(self, total_amount):
+        if len(self.transactions) == 0:
+            return {}
         df = pd.DataFrame([[t.seller_id, t.relative_angle, 0] for t in self.transactions],
                           columns=["seller", "angle", "alike"])
         angle_window = 30
@@ -153,6 +155,8 @@ class DeltaTimePaymentSystem(TransactionPaymentSystem):
 
 class SmallDeviationPaymentSystem(TransactionPaymentSystem):
     def get_shares_mapping(self, total_amount):
+        if len(self.transactions) <= 1:
+            return {t.seller_id: total_amount for t in self.transactions}
         df = pd.DataFrame([[t.seller_id, t.relative_angle, 0] for t in self.transactions],
                           columns=["seller", "angle", "alike"])
         df["alike"] = df.apply(func=lambda row: pd.DataFrame(
@@ -165,6 +169,8 @@ class SmallDeviationPaymentSystem(TransactionPaymentSystem):
         sellers_to_alike["alike"] = sellers_to_alike["alike"].sum() - sellers_to_alike["alike"]
         sellers_to_alike = sellers_to_alike.to_dict()["alike"]
         total_shares = sum(sellers_to_alike.values())
+        if total_shares == 0:
+            return {seller: total_amount/len(sellers_to_alike) for seller in sellers_to_alike}
         mapping = {seller: total_amount * sellers_to_alike[seller] / total_shares for seller in sellers_to_alike}
         return mapping
 
@@ -175,7 +181,7 @@ class PaymentDB:
         self.info_share = info_share
         for robot_id in population_ids:
             self.database[robot_id] = {"reward": initial_reward,
-                                       "payment_system": DeltaTimePaymentSystem()}
+                                       "payment_system": TransactionPaymentSystem()}
 
     def step(self):
         for robot_id in self.database:
