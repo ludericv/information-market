@@ -394,18 +394,21 @@ def items_collected_violin_plot(df, frame, n_good, n_bad, good_name="naive", bad
     }
 
     honest_flat = pd.DataFrame(df.iloc[:, :n_good].to_numpy().flatten())
-    bad_flat = pd.DataFrame(df.iloc[:, -n_bad:].to_numpy().flatten())
+    bad_flat = pd.DataFrame(df.iloc[:, n_good:n_good+n_bad].to_numpy().flatten())
 
     goods = pd.DataFrame(np.full(honest_flat.shape, good_name))
-    bads = pd.DataFrame(np.full(honest_flat.shape, bad_name))
+    bads = pd.DataFrame(np.full(bad_flat.shape, bad_name))
     honest_flat = pd.concat([honest_flat, goods], axis=1)
     bad_flat = pd.concat([bad_flat, bads], axis=1)
     final_df = pd.concat([honest_flat, bad_flat])
     final_df.columns = ["items collected", "behavior"]
-    print(final_df)
-    sns.violinplot(data=final_df, y="items collected", hue="behavior",
-                   split=True, inner="quart", linewidth=1, ax=frame)
-    sns.despine(left=True)
+    final_df["run"] = "all"
+    split=n_bad > 0 and n_good > 0
+    sns.violinplot(data=final_df, x="run", y="items collected", hue="behavior",
+                   split=split, inner="quart", linewidth=1, ax=frame, palette=palette)
+    frame.set(xlabel=None)
+    #sns.despine(left=True)
+
 
 def test_angles():
     df = pd.DataFrame([[1, 1, 0], [2, 4, 0], [1, 100, 0], [4, 359, 0]], columns=["seller", "angle", "alike"])
@@ -450,18 +453,18 @@ def test_timedev():
 
 def thesis_plots():
     # Chapter 8 - Section 1
-    # filename = "../data/behaviors/items_collected/25honest.txt"
-    # df = pd.read_csv(filename, header=None)
-    # general_boxplot_data = df.values.flatten()
-    # fig, axs = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 4]})
-    # fig.set_size_inches(10, 6)
-    # sns.violinplot(x=["all" for e in general_boxplot_data], y=general_boxplot_data, ax=axs[0], bw=.3)
-    # run_difference_plot(df, axs[1], 0, 25)
-    # #run_difference_plot(pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None), axs[2], 1, 24)
-    # fig.suptitle("Performance of Naïve Swarm")
-    # fig.supylabel("Number of Items Collected")
-    # fig.supxlabel("Run Considered")
-    # plt.show()
+    filename = "../data/behaviors/items_collected/25honest.txt"
+    df = pd.read_csv(filename, header=None)
+    general_boxplot_data = df.values.flatten()
+    fig, axs = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 4]})
+    fig.set_size_inches(10, 6)
+    sns.violinplot(x=["all" for e in general_boxplot_data], y=general_boxplot_data, ax=axs[0], bw=.3)
+    run_difference_plot(df, axs[1], 0, 25)
+    #run_difference_plot(pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None), axs[2], 1, 24)
+    fig.suptitle("Performance of Naïve Swarm")
+    fig.supylabel("Number of Items Collected")
+    fig.supxlabel("Run Considered")
+    plt.show()
 
     df = pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None)
     fig, axs = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 4]})
