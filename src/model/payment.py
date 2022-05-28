@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 from collections import Counter, deque
 
 import numpy as np
-import pandas as pd
 
 from helpers.utils import InsufficientFundsException
 from model.navigation import Location
+import pandas as pd
+pd.options.mode.chained_assignment = None
 
 
 class Transaction:
@@ -120,17 +121,27 @@ class TransactionPaymentSystem(PaymentSystem):
     def get_shares_mapping(self, total_amount):
         if len(self.transactions) == 0:
             return {}
-        df = pd.DataFrame([[t.seller_id, t.relative_angle, 0] for t in self.transactions],
-                          columns=["seller", "angle", "alike"])
+        df_all = pd.DataFrame([[t.seller_id, t.relative_angle, t.location, 0] for t in self.transactions],
+                          columns=["seller", "angle", "location", "alike"])
         angle_window = 30
-        df["alike"] = df.apply(func=lambda row: (((df.iloc[:, 1] - row[1]) % 360) < angle_window).sum()
-                                                         + (((row[1] - df.iloc[:, 1]) % 360) < angle_window).sum() - 1,
-                                        axis=1)
-        sellers_to_alike = df.groupby("seller").sum().to_dict()["alike"]
-        # print(df)
-        total_shares = sum(sellers_to_alike.values())
-        mapping = {seller: total_amount * sellers_to_alike[seller]/total_shares for seller in sellers_to_alike}
-        return mapping
+        final_mapping = {}
+        for location in Location:
+            df = df_all[df_all["location"] == location]
+            df["alike"] = df.apply(func=lambda row: (((df.iloc[:, 1] - row[1]) % 360) < angle_window).sum()
+                                                             + (((row[1] - df.iloc[:, 1]) % 360) < angle_window).sum() - 1,
+                                            axis=1)
+            sellers_to_alike = df.groupby("seller").sum().to_dict()["alike"]
+            mapping = {seller: sellers_to_alike[seller] for seller in sellers_to_alike}
+            for seller in mapping:
+                if seller in final_mapping:
+                    final_mapping[seller] += mapping[seller]
+                else:
+                    final_mapping[seller] = mapping[seller]
+
+        total_shares = sum(final_mapping.values())
+        for seller in final_mapping:
+            final_mapping[seller] = final_mapping[seller] * total_amount / total_shares
+        return final_mapping
 
     def record_transaction(self, transaction: Transaction):
         self.transactions.add(transaction)

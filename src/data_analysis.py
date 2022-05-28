@@ -7,6 +7,7 @@ import seaborn as sns
 from scipy.stats import wilcoxon
 
 from model.market import exponential_model, logistics_model
+from model.navigation import Location
 
 
 def main():
@@ -353,7 +354,6 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
         for col in range(ncols):
             filename = filenames[row * ncols + col]
             df = pd.read_csv(f"../data/{comparison_on}/{metric}/{filename}.txt", header=None)
-            df = df - 3
             n_honest = int(re.search('[0-9]+', filename).group())
             honest_name = re.search('[a-z]+', filename.split("_")[0]).group()
             bad_name = re.search('[a-z]+', filename.split("_")[2]).group()
@@ -414,25 +414,27 @@ def items_collected_violin_plot(df, frame, n_good, n_bad, good_name="naive", bad
 
 
 def test_angles():
-    df = pd.DataFrame([[1, 1, 0], [2, 4, 0], [1, 100, 0], [4, 359, 0]], columns=["seller", "angle", "alike"])
+    df_all = pd.DataFrame([[1, 1, Location.FOOD, 0], [2, 4,Location.NEST, 0], [2, 5,Location.NEST, 0], [1, 100, Location.FOOD, 0], [4, 359,Location.FOOD, 0]], columns=["seller", "angle", "location", "alike"])
     angle_window = 5
     total_amount = 0.5
-    df["alike"] = df.apply(func=lambda row: pd.DataFrame(
-        [(df.iloc[:, 1] - row[1]) % 360,
-         (row[1] - df.iloc[:, 1]) % 360]).
-                           apply(min, axis=0).
-                           sum(),
-                           axis=1)
-    # pd.DataFrame([(df.iloc[:, 1] - row[1]) % 360, (row[1] - df.iloc[:, 1]) % 360]).apply(min, axis=1).sum()
-    # print(pd.DataFrame(
-    #     [(df.iloc[:, 1] - df.iloc[1, 1]) % 360,
-    #      (df.iloc[1, 1] - df.iloc[:, 1]) % 360]))
-    # print(df)
-    sellers_to_alike = df.groupby("seller").sum()
-    print(sellers_to_alike)
-    sellers_to_alike["alike"] = sellers_to_alike["alike"].sum() - sellers_to_alike["alike"]
-    sellers_to_alike = sellers_to_alike.to_dict()["alike"]
-    print(sellers_to_alike)
+    for location in Location:
+        df = df_all[df_all["location"] == location]
+        df["alike"] = df.apply(func=lambda row: pd.DataFrame(
+            [(df.iloc[:, 1] - row[1]) % 360,
+             (row[1] - df.iloc[:, 1]) % 360]).
+                               apply(min, axis=0).
+                               sum(),
+                               axis=1)
+        # pd.DataFrame([(df.iloc[:, 1] - row[1]) % 360, (row[1] - df.iloc[:, 1]) % 360]).apply(min, axis=1).sum()
+        # print(pd.DataFrame(
+        #     [(df.iloc[:, 1] - df.iloc[1, 1]) % 360,
+        #      (df.iloc[1, 1] - df.iloc[:, 1]) % 360]))
+        # print(df)
+        sellers_to_alike = df.groupby("seller").sum()
+        print(sellers_to_alike)
+        sellers_to_alike["alike"] = sellers_to_alike["alike"].sum() - sellers_to_alike["alike"]
+        sellers_to_alike = sellers_to_alike.to_dict()["alike"]
+        print(sellers_to_alike)
     # total_shares = sum(sellers_to_alike.values())
     # mapping = {seller: total_amount * sellers_to_alike[seller] / total_shares for seller in sellers_to_alike}
     # print(mapping)
@@ -515,6 +517,32 @@ def thesis_plots():
                    y=pd.read_csv(filenames[1], header=None).to_numpy().flatten()))
 
 
+def test_windowdev():
+    pd.options.mode.chained_assignment = None
+    angle_window = 30
+    total_amount = 0.5
+    transactions = [[1, 1, Location.NEST, 0], [2, 4,Location.NEST, 0],
+                    [2, 5, Location.NEST, 0], [3, 100, Location.NEST, 0],
+                    [4, 359, Location.NEST, 0]]
+    df_all = pd.DataFrame(transactions, columns=["seller", "angle", "location", "alike"])
+    final_mapping = {}
+    for location in Location:
+        df = df_all[df_all["location"] == location]
+        df.loc[:, "alike"] = df.apply(func=lambda row: (((df.loc[:, "angle"] - row[1]) % 360) < angle_window).sum()
+                                                       + (((row[1] - df.loc[:, "angle"]) % 360) < angle_window).sum() - 1,
+                                      axis=1)
+        sellers_to_alike = df.groupby("seller").sum().to_dict()["alike"]
+        mapping = {seller: sellers_to_alike[seller] for seller in sellers_to_alike}
+        for seller in mapping:
+            if seller in final_mapping:
+                final_mapping[seller] += mapping[seller]
+            else:
+                final_mapping[seller] = mapping[seller]
+    total_shares = sum(final_mapping.values())
+    print(final_mapping)
+    for seller in final_mapping:
+        final_mapping[seller] = final_mapping[seller] * total_amount/total_shares
+    print(final_mapping)
 
 if __name__ == '__main__':
     # supply_demand_simulation()
@@ -523,7 +551,7 @@ if __name__ == '__main__':
     # compare_stop_time()
     # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")
     # make_violin_plots(["20smart_t25_5saboteur", "22smart_t25_3saboteur"], by=2)
-    powerpoint_plots()
-    # test_angles()
+    # powerpoint_plots()
+    test_windowdev()
     # test_timedev()
     # thesis_plots()
