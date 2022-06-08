@@ -336,16 +336,19 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
     fig, axs = plt.subplots(nrows=nrows, ncols=1, sharey=True, sharex=True)
     fig.set_size_inches(3 * ncols, 6 * nrows)
     palette = {
-        "smart": "cornflowerblue",
+        "smart": "tab:blue",
         "greedy": "limegreen",
         "saboteur": "firebrick",
         "smartboteur": "firebrick",
         "smartgreedy": "limegreen"
     }
 #    sns.set_palette(palette)
+    x_name = "experiment"
+    y_name = "proportion of total wealth (%)"
+    hue_name = "behavior"
 
     for row in range(nrows):
-        row_df = pd.DataFrame(columns=["proportion(%)", "behavior", "file"])
+        row_df = pd.DataFrame(columns=[x_name, hue_name, y_name])
         if nrows == 1:
             frame = axs
         else:
@@ -374,13 +377,13 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
             honest_flat = pd.concat([honest_flat, goods], axis=1)
             bad_flat = pd.concat([bad_flat, bads], axis=1)
             final_df = pd.concat([honest_flat, bad_flat])
-            final_df.columns = ["proportion(%)", "behavior"]
-            final_df["file"] = f"{n_honest} {honest_name} vs {n_bad} {bad_name}"
+            final_df.columns = [y_name, hue_name]
+            final_df[x_name] = f"{n_honest} {honest_name} vs {n_bad} {bad_name}"
             row_df = pd.concat([row_df, final_df])
         row_df.index = [i for i in range(row_df.shape[0])]
         temp = pd.DataFrame(row_df.to_dict())
-        sns.violinplot(data=temp, x="file", y="proportion(%)", hue="behavior",
-                       split=True, inner="quart", linewidth=1, ax=frame, palette=palette)
+        sns.violinplot(data=temp, x=x_name, y=y_name, hue=hue_name,
+                       split=True, inner="quart", linewidth=2, ax=frame, palette=palette)
         sns.despine(left=True)
 
     plt.show()
@@ -458,6 +461,67 @@ def test_timedev():
 
 def thesis_plots():
     # Chapter 8 - Section 1
+    # chap8_1()
+
+    # Chapter 8 - Section 2
+    # chap8_2()
+
+    # Chapter 9 - Section 1
+    filenames = ["24smart_t25_1smartboteur_SoR_50",
+                 "22smart_t25_3smartboteur_SoR_50",
+                 "20smart_t25_5smartboteur_SoR_50"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
+                      title="Wealth Repartition, Reward Share Transactions, Fixed Reward")
+    filenames = ["24smart_t25_1smartboteur_SoR_50_RTmarket",
+                 "22smart_t25_3smartboteur_SoR_50_RTmarket",
+                 "20smart_t25_5smartboteur_SoR_50_RTmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
+                      title="Wealth Repartition, Reward Share Transactions, Round-trip Duration Reward")
+
+    filenames = ["24smart_t25_1smartgreedy_windowdev_50_RTmarket",
+                 "22smart_t25_3smartgreedy_windowdev_50_RTmarket",
+                 "20smart_t25_5smartgreedy_windowdev_50_RTmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
+                      title=" Wealth Repartition, Reward Share Transactions, Round-trip Duration Reward")
+
+
+def chap8_2():
+    filenames = ["../data/behaviors/items_collected/25honest.txt",
+                 "../data/behaviors/items_collected/25smart_t25.txt",
+                 "../data/behaviors/items_collected/25careful.txt"]
+    robot_name = ["Naive", "Smart", "Careful"]
+    fig, axs = plt.subplots(1, 3, sharey=True)
+    fig.set_size_inches(10, 6)
+    fig.suptitle("Comparing Honest Behaviors")
+    fig.supylabel("Number of Items Collected")
+    fig.supxlabel("Behavior")
+    for i, file in enumerate(filenames):
+        df = pd.read_csv(file, header=None)
+        general_boxplot_data = df.values.flatten()
+        sns.violinplot(x=[robot_name[i] for e in general_boxplot_data], y=general_boxplot_data, ax=axs[i], linewidth=2,
+                       bw=.3)
+    plt.show()
+    robot_name = ["Smart", "Careful"]
+    filenames = [
+        "../data/saboteur_comp/items_collected/24smart_t25_1smartboteur_SoR_50.txt",
+        "../data/saboteur_comp/items_collected/24smart_t25_1smartboteur_SoR_50_RTmarket.txt"]
+    for i, file in enumerate(filenames):
+        df = pd.read_csv(file, header=None)
+        fig, axs = plt.subplots(1, 2, sharey=True)
+        fig.suptitle(f"Performance of {robot_name[i]} Swarm with 1 Saboteur")
+        fig.supylabel("Number of Items Collected")
+        fig.supxlabel("Run Considered")
+        print(np.median(df.to_numpy().flatten()))
+        items_collected_violin_plot(df, axs[0], 24, 1, good_name=robot_name[i].lower())
+        run_difference_plot(df, axs[1], 1, 24)
+        plt.show()
+    # x = pd.read_csv(filenames[0], header=None).to_numpy().flatten()
+    # y = pd.read_csv(filenames[1], header=None).to_numpy().flatten()
+    # print(len(x), len(y))
+    # print(wilcoxon(x=x, y=y))
+
+
+def chap8_1():
     filename = "../data/behaviors/items_collected/25honest.txt"
     df = pd.read_csv(filename, header=None)
     general_boxplot_data = df.values.flatten()
@@ -465,12 +529,11 @@ def thesis_plots():
     fig.set_size_inches(10, 6)
     sns.violinplot(x=["all" for e in general_boxplot_data], y=general_boxplot_data, ax=axs[0], bw=.3, linewidth=2)
     run_difference_plot(df, axs[1], 0, 25)
-    #run_difference_plot(pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None), axs[2], 1, 24)
+    # run_difference_plot(pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None), axs[2], 1, 24)
     fig.suptitle("Performance of Naïve Swarm")
     fig.supylabel("Number of Items Collected")
     fig.supxlabel("Run Considered")
     plt.show()
-
     df = pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None)
     fig, axs = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [1, 4]})
     fig.set_size_inches(10, 6)
@@ -480,41 +543,6 @@ def thesis_plots():
     items_collected_violin_plot(df, axs[0], 24, 1)
     run_difference_plot(df, axs[1], 1, 24)
     plt.show()
-
-    # Chapter 8 - Section 2
-    filenames = ["../data/behaviors/items_collected/25honest.txt",
-                 "../data/behaviors/items_collected/25smart_t25.txt",
-                 "../data/behaviors/items_collected/25careful.txt"]
-    robot_name = ["Naive", "Smart", "Careful"]
-
-    fig, axs = plt.subplots(1, 3, sharey=True)
-    fig.set_size_inches(10, 6)
-    fig.suptitle("Comparing Honest Behaviors")
-    fig.supylabel("Number of Items Collected")
-    fig.supxlabel("Behavior")
-    for i, file in enumerate(filenames):
-        df = pd.read_csv(file, header=None)
-        general_boxplot_data = df.values.flatten()
-        sns.violinplot(x=[robot_name[i] for e in general_boxplot_data], y=general_boxplot_data, ax=axs[i], linewidth=2, bw=.3)
-    plt.show()
-
-    robot_name = ["Smart", "Careful"]
-    filenames = [
-                 "../data/behaviors/items_collected/24smart_t25_1saboteur.txt",
-                 "../data/behaviors/items_collected/24careful_s3_1saboteur.txt"]
-
-    for i, file in enumerate(filenames):
-        df = pd.read_csv(file, header=None)
-        fig.suptitle(f"Performance of {robot_name[i]} Swarm with 1 Saboteur")
-        fig.supylabel("Number of Items Collected")
-        fig.supxlabel("Run Considered")
-        print(np.median(df.to_numpy().flatten()))
-        items_collected_violin_plot(df, axs[0], 24, 1, good_name=robot_name[i].lower())
-        run_difference_plot(df, axs[1], 1, 24)
-        plt.show()
-
-    print(wilcoxon(x=pd.read_csv(filenames[0], header=None).to_numpy().flatten(),
-                   y=pd.read_csv(filenames[1], header=None).to_numpy().flatten()))
 
 
 def test_windowdev():
@@ -544,6 +572,9 @@ def test_windowdev():
         final_mapping[seller] = final_mapping[seller] * total_amount/total_shares
     print(final_mapping)
 
+
+
+
 if __name__ == '__main__':
     # supply_demand_simulation()
     # compare_behaviors()
@@ -552,6 +583,7 @@ if __name__ == '__main__':
     # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")
     # make_violin_plots(["20smart_t25_5saboteur", "22smart_t25_3saboteur"], by=2)
     # powerpoint_plots()
-    test_windowdev()
+    # test_windowdev()
     # test_timedev()
     # thesis_plots()
+    compare_strats()
