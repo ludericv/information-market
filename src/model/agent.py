@@ -11,17 +11,19 @@ from model.communication import CommunicationSession
 from model.navigation import Location
 import numpy as np
 
-from helpers.utils import get_orientation_from_vector, rotate, InsufficientFundsException, CommunicationState
+from helpers.utils import get_orientation_from_vector, rotate, InsufficientFundsException, CommunicationState, norm
 
 
 class AgentAPI:
     def __init__(self, agent):
         self.speed = agent.speed
+        self.get_sensors = agent.get_sensors
+        self.set_desired_movement = agent.set_desired_movement
+        self.get_id = agent.get_id
         self.carries_food = agent.carries_food
         self.radius = agent.radius
         self.get_vector = agent.get_vector
         self.get_levi_turn_angle = agent.get_levi_turn_angle
-        self.get_mu = agent.noise_mu
 
 
 class Agent:
@@ -58,6 +60,8 @@ class Agent:
         self.levi_counter = 1
         self.trace = deque(self.pos, maxlen=100)
 
+        self.dr = np.array([0, 0])
+        self.sensors = {}
         self.behavior = behavior
         self.api = AgentAPI(self)
 
@@ -75,7 +79,7 @@ class Agent:
                f"drift: {round(self.noise_mu, 5)}\n" \
                f"reward: {round(self.environment.payment_database.get_reward(self.id), 3)}$\n" \
                f"item count: {self.items_collected}\n" \
-               f"dr: {np.round(self.behavior.get_dr(), 2)}\n" \
+               f"dr: {np.round(self.dr, 2)}\n" \
                f"{self.behavior.debug_text()}"
 
     def __repr__(self):
@@ -100,10 +104,10 @@ class Agent:
 
     def step(self):
         self.behavior.navigation_table = self.new_nav
-        sensors = self.environment.get_sensors(self)
+        self.sensors = self.environment.get_sensors(self)
         # self.check_food(sensors)
         if not self.comm_state == CommunicationState.PROCESSING:
-            self.behavior.step(sensors, AgentAPI(self))
+            self.behavior.step(AgentAPI(self))
             try:
                 self.environment.payment_database.apply_cost(self.id, self.fuel_cost)
                 self.move()
@@ -150,7 +154,7 @@ class Agent:
             raise Exception(f"Robot does not sense {location}")
 
     def move(self):
-        wanted_movement = rotate(self.behavior.get_dr(), self.orientation)
+        wanted_movement = rotate(self.dr, self.orientation)
         noise_angle = gauss(self.noise_mu, self.noise_sd)
         noisy_movement = rotate(wanted_movement, noise_angle)
         self.orientation = get_orientation_from_vector(noisy_movement)
@@ -237,8 +241,14 @@ class Agent:
     def radius(self):
         return self._radius
 
+    def get_id(self):
+        return self.id
+
     def reward(self):
         return self.environment.payment_database.get_reward(self.id)
+
+    def get_sensors(self):
+        return self.sensors
 
     def carries_food(self):
         return self._carries_food
@@ -249,6 +259,12 @@ class Agent:
 
     def pickup_food(self):
         self._carries_food = True
+
+    def set_desired_movement(self, dr):
+        norm_dr = norm(dr)
+        if norm_dr > self._speed:
+            dr = self._speed * dr / norm_dr
+        self.dr = dr
 
     def record_transaction(self, transaction):
         transaction.timestep = self.environment.timestep

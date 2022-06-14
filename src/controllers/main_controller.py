@@ -5,7 +5,7 @@ from model.environment import Environment
 
 class Configuration:
     def __init__(self, config_file):
-        self.parameters = dict()
+        self._parameters = dict()
         self.read_config(config_file)
 
     def read_config(self, config_file):
@@ -20,55 +20,58 @@ class Configuration:
         float_params = {"RDWALK_FACTOR", "ROBOT_SPEED", "LEVI_FACTOR", "NOISE_MU", "NOISE_MUSD",
                         "NOISE_SD", "COMM_RADIUS", "INITIAL_REWARD", "FUEL_COST", "INFO_COST", "DEMAND", "MAX_PRICE"}
         if parameter in float_params:
-            self.parameters[parameter] = float(value)
+            self._parameters[parameter] = float(value)
         else:
-            self.parameters[parameter] = int(value)
+            self._parameters[parameter] = int(value)
+
+    def value_of(self, parameter):
+        return self._parameters[parameter]
 
 
 class MainController:
 
     def __init__(self, config: Configuration):
         self.config = config
-        random_walk.set_parameters(random_walk_factor=self.config.parameters["RDWALK_FACTOR"],
-                                   levi_factor=self.config.parameters["LEVI_FACTOR"]
+        random_walk.set_parameters(random_walk_factor=self.config.value_of("RDWALK_FACTOR"),
+                                   levi_factor=self.config.value_of("LEVI_FACTOR")
                                    # , max_levi_steps=self.config.parameters["SIMULATION_STEPS"]
                                    )
-        self.environment = Environment(width=self.config.parameters["WIDTH"],
-                                       height=self.config.parameters["HEIGHT"],
-                                       nb_robots=self.config.parameters["NB_ROBOTS"],
-                                       nb_honest=self.config.parameters["NB_HONEST"],
-                                       robot_speed=self.config.parameters["ROBOT_SPEED"],
-                                       comm_radius=self.config.parameters["COMM_RADIUS"],
-                                       robot_radius=self.config.parameters["ROBOT_RADIUS"],
-                                       rdwalk_factor=self.config.parameters["RDWALK_FACTOR"],
-                                       levi_factor=self.config.parameters["LEVI_FACTOR"],
-                                       food_x=self.config.parameters["FOOD_X"],
-                                       food_y=self.config.parameters["FOOD_Y"],
-                                       food_radius=self.config.parameters["FOOD_RADIUS"],
-                                       nest_x=self.config.parameters["NEST_X"],
-                                       nest_y=self.config.parameters["NEST_Y"],
-                                       nest_radius=self.config.parameters["NEST_RADIUS"],
-                                       noise_mu=self.config.parameters["NOISE_MU"],
-                                       noise_musd=self.config.parameters["NOISE_MUSD"],
-                                       noise_sd=self.config.parameters["NOISE_SD"],
-                                       initial_reward=self.config.parameters["INITIAL_REWARD"],
-                                       fuel_cost=self.config.parameters["FUEL_COST"],
-                                       info_cost=self.config.parameters["INFO_COST"],
-                                       demand=self.config.parameters["DEMAND"],
-                                       max_price=self.config.parameters["MAX_PRICE"],
-                                       robot_comm_cooldown=self.config.parameters["COMM_COOLDOWN"],
-                                       robot_comm_stop_time=self.config.parameters["COMM_STOPTIME"]
+        self.environment = Environment(width=self.config.value_of("WIDTH"),
+                                       height=self.config.value_of("HEIGHT"),
+                                       nb_robots=self.config.value_of("NB_ROBOTS"),
+                                       nb_honest=self.config.value_of("NB_HONEST"),
+                                       robot_speed=self.config.value_of("ROBOT_SPEED"),
+                                       comm_radius=self.config.value_of("COMM_RADIUS"),
+                                       robot_radius=self.config.value_of("ROBOT_RADIUS"),
+                                       rdwalk_factor=self.config.value_of("RDWALK_FACTOR"),
+                                       levi_factor=self.config.value_of("LEVI_FACTOR"),
+                                       food_x=self.config.value_of("FOOD_X"),
+                                       food_y=self.config.value_of("FOOD_Y"),
+                                       food_radius=self.config.value_of("FOOD_RADIUS"),
+                                       nest_x=self.config.value_of("NEST_X"),
+                                       nest_y=self.config.value_of("NEST_Y"),
+                                       nest_radius=self.config.value_of("NEST_RADIUS"),
+                                       noise_mu=self.config.value_of("NOISE_MU"),
+                                       noise_musd=self.config.value_of("NOISE_MUSD"),
+                                       noise_sd=self.config.value_of("NOISE_SD"),
+                                       initial_reward=self.config.value_of("INITIAL_REWARD"),
+                                       fuel_cost=self.config.value_of("FUEL_COST"),
+                                       info_cost=self.config.value_of("INFO_COST"),
+                                       demand=self.config.value_of("DEMAND"),
+                                       max_price=self.config.value_of("MAX_PRICE"),
+                                       robot_comm_cooldown=self.config.value_of("COMM_COOLDOWN"),
+                                       robot_comm_stop_time=self.config.value_of("COMM_STOPTIME")
                                        )
         self.tick = 0
 
     def step(self):
-        if self.tick < self.config.parameters["SIMULATION_STEPS"]:
+        if self.tick < self.config.value_of("SIMULATION_STEPS"):
             self.tick += 1
             self.environment.step()
 
     def start_simulation(self):
         # now = time.time()
-        for step_nb in range(self.config.parameters["SIMULATION_STEPS"]):
+        for step_nb in range(self.config.value_of("SIMULATION_STEPS")):
             self.step()
         # print(f"Time taken for {self.config.parameters['SIMULATION_STEPS']} steps: {time.time()-now}")
 

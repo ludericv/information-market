@@ -29,7 +29,7 @@ class Behavior(ABC):
         pass
 
     @abstractmethod
-    def step(self, sensors, api):
+    def step(self, api):
         """Simulates 1 step of behavior (= 1 movement)"""
 
     def get_dr(self):
@@ -48,13 +48,14 @@ class HonestBehavior(Behavior):
         super().__init__()
         self.state = State.EXPLORING
         self.strategy = WeightedAverageAgeStrategy()
+        self.id = -1
 
     def communicate(self, session: CommunicationSession):
         for location in Location:
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age(location) - 10:
+                if data["age"] < self.navigation_table.get_age(location):
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         new_target = self.strategy.combine(self.navigation_table.get_target(location),
@@ -63,12 +64,15 @@ class HonestBehavior(Behavior):
                         self.navigation_table.replace_target(location, new_target)
                         break
                     except InsufficientFundsException:
+                        print(f"No money for robot {self.id}")
                         pass
                     except NoInformationSoldException:
                         pass
 
-    def step(self, sensors, api):
+    def step(self, api):
         self.dr[0], self.dr[1] = 0, 0
+        self.id = api.get_id()
+        sensors = api.get_sensors()
         self.update_behavior(sensors, api)
         self.update_movement_based_on_state(api)
         self.check_movement_with_sensors(sensors, api)
@@ -136,6 +140,8 @@ class HonestBehavior(Behavior):
             turn_angle = api.get_levi_turn_angle()
             self.dr = api.speed() * np.array([cos(radians(turn_angle)), sin(radians(turn_angle))])
 
+        api.set_desired_movement(self.dr)
+
     def check_movement_with_sensors(self, sensors, api):
         if (sensors["FRONT"] and self.dr[0] >= 0) or (sensors["BACK"] and self.dr[0] <= 0):
             self.dr[0] = -self.dr[0]
@@ -145,7 +151,6 @@ class HonestBehavior(Behavior):
     def update_nav_table_based_on_dr(self, api):
         self.navigation_table.update_from_movement(self.dr)
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
-        self.navigation_table.decay_qualities(1 - 0.01 * abs(api.get_mu))
 
 
 class CarefulBehavior(HonestBehavior):
@@ -184,8 +189,8 @@ class CarefulBehavior(HonestBehavior):
         self.navigation_table.replace_target(location, best_target)
         self.pending_information[location].clear()
 
-    def step(self, sensors, api):
-        super().step(sensors, api)
+    def step(self, api):
+        super().step( api)
         self.update_pending_information()
 
     def update_pending_information(self):
@@ -242,8 +247,8 @@ class SmartBehavior(HonestBehavior):
         score = norm(current_vector - bought_vector) / v_norm if v_norm > 0 else 1000
         return score
 
-    def step(self, sensors, api):
-        super().step(sensors, api)
+    def step(self, api):
+        super().step(api)
         self.update_pending_information()
 
     def update_pending_information(self):

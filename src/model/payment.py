@@ -23,11 +23,11 @@ class PaymentSystem(ABC):
         self._creditors = set()
 
     @abstractmethod
-    def get_shares_mapping(self, total_amount):
+    def get_shares_mapping(self, total_amount, database=None, debitor_id=None):
         pass
 
     @abstractmethod
-    def record_transaction(self, transaction: Transaction):
+    def record_transaction(self, transaction: Transaction, database):
         pass
 
     def step(self):
@@ -42,7 +42,7 @@ class FixedSharePaymentSystem(PaymentSystem):
         super().__init__()
         self._creditors = Counter()
 
-    def get_shares_mapping(self, total_amount):
+    def get_shares_mapping(self, total_amount, database=None, debitor_id=None):
         nb_of_creditors = sum(self._creditors.values())
         shares_mapping = {creditor_id: 0 for creditor_id in self._creditors}
         if nb_of_creditors > 0:
@@ -51,7 +51,7 @@ class FixedSharePaymentSystem(PaymentSystem):
                 shares_mapping[creditor_id] += share
         return shares_mapping
 
-    def record_transaction(self, transaction: Transaction):
+    def record_transaction(self, transaction: Transaction, database):
         self._creditors[transaction.seller_id] += 1
 
 
@@ -61,7 +61,7 @@ class LastKPaymentSystem(PaymentSystem):
         super().__init__()
         self._creditors = deque(maxlen=k)
 
-    def get_shares_mapping(self, total_amount):
+    def get_shares_mapping(self, total_amount, database=None, debitor_id=None):
         if len(self._creditors) == 0:
             return {}
         shares_mapping = {creditor_id: 0 for creditor_id in self._creditors}
@@ -70,7 +70,7 @@ class LastKPaymentSystem(PaymentSystem):
             shares_mapping[creditor_id] += share
         return shares_mapping
 
-    def record_transaction(self, transaction: Transaction):
+    def record_transaction(self, transaction: Transaction, database):
         self._creditors.append(transaction.seller_id)
 
 
@@ -84,7 +84,7 @@ class TimeVaryingSharePaymentSystem(PaymentSystem):
     def get_share(creditor_time, total_time):
         return total_time - creditor_time
 
-    def get_shares_mapping(self, total_amount):
+    def get_shares_mapping(self, total_amount, database=None, debitor_id=None):
         total_time = sum(self._creditor_times.values())
         total_shares = sum(self.get_share(self._creditor_times[c], total_time) for c in self._creditor_times)
         shares_mapping = {creditor_id: 0 for creditor_id in self._creditor_times}
@@ -94,7 +94,7 @@ class TimeVaryingSharePaymentSystem(PaymentSystem):
                 shares_mapping[creditor_id] += share
         return shares_mapping
 
-    def record_transaction(self, transaction: Transaction):
+    def record_transaction(self, transaction: Transaction, database):
         self._creditors[transaction.seller_id] += 1
         if transaction.seller_id not in self._creditor_times:
             self._creditor_times[transaction.seller_id] = 1
@@ -108,17 +108,19 @@ class TimeVaryingSharePaymentSystem(PaymentSystem):
         self._creditor_times.clear()
 
 
-class TransactionPaymentSystem(PaymentSystem):
+class WindowTransactionPaymentSystem(PaymentSystem):
 
     def __init__(self):
         super().__init__()
         self.transactions = set()
+        self.pot_amount = 0
         self.timestep = 0
 
     def step(self):
         self.timestep += 1
 
-    def get_shares_mapping(self, total_amount):
+    def get_shares_mapping(self, total_amount, database=None, debitor_id=None):
+        database.pay_reward(debitor_id, self.pot_amount)
         if len(self.transactions) == 0:
             return {}
         df_all = pd.DataFrame([[t.seller_id, t.relative_angle, t.location, 0] for t in self.transactions],
@@ -127,6 +129,8 @@ class TransactionPaymentSystem(PaymentSystem):
         final_mapping = {}
         for location in Location:
             df = df_all[df_all["location"] == location]
+            if df.shape[0] == 0:
+                continue
             df["alike"] = df.apply(func=lambda row: (((df.iloc[:, 1] - row[1]) % 360) < angle_window).sum()
                                                              + (((row[1] - df.iloc[:, 1]) % 360) < angle_window).sum() - 1,
                                             axis=1)
@@ -140,18 +144,73 @@ class TransactionPaymentSystem(PaymentSystem):
 
         total_shares = sum(final_mapping.values())
         for seller in final_mapping:
-            final_mapping[seller] = final_mapping[seller] * total_amount / total_shares
+            final_mapping[seller] = final_mapping[seller] * (total_amount + self.pot_amount) / total_shares
         return final_mapping
 
-    def record_transaction(self, transaction: Transaction):
+    def record_transaction(self, transaction: Transaction, database):
+        vouch_amount = (1 / 25) * 0.5
+        database.apply_cost(transaction.seller_id, vouch_amount)
+        self.pot_amount += vouch_amount
         self.transactions.add(transaction)
 
     def reset_creditors(self):
         self.transactions.clear()
+        self.pot_amount = 0
 
 
-class DeltaTimePaymentSystem(TransactionPaymentSystem):
-    def get_shares_mapping(self, total_amount):
+class NumpyWindowTransactionPaymentSystem(PaymentSystem):
+
+    def __init__(self):
+        super().__init__()
+        self.transactions = set()
+        self.pot_amount = 0
+        self.timestep = 0
+
+    def step(self):
+        self.timestep += 1
+
+    def get_shares_mapping(self, total_amount, database=None, debitor_id=None):
+        database.pay_reward(debitor_id, self.pot_amount)
+        if len(self.transactions) == 0:
+            return {}
+        df_all = np.array([[t.seller_id, t.relative_angle, t.location, 0] for t in self.transactions])
+        angle_window = 30
+        final_mapping = {}
+        for location in Location:
+            df = df_all[df_all[:, 2] == location]
+            if df.shape[0] == 0:
+                continue
+            df[:, 3] = np.apply_along_axis(func1d=lambda row: (((df[:, 1] - row[1]) % 360) < angle_window).sum()
+                                                             + (((row[1] - df[:, 1]) % 360) < angle_window).sum() - 1,
+                                            axis=1, arr=df)
+            mapping = {seller: 0 for seller in df[:, 0]}
+            for row in df:
+                mapping[row[0]] += row[3]
+
+            for seller in mapping:
+                if seller in final_mapping:
+                    final_mapping[seller] += mapping[seller]
+                else:
+                    final_mapping[seller] = mapping[seller]
+
+        total_shares = sum(final_mapping.values())
+        for seller in final_mapping:
+            final_mapping[seller] = final_mapping[seller] * (total_amount + self.pot_amount) / total_shares
+        return final_mapping
+
+    def record_transaction(self, transaction: Transaction, database):
+        vouch_amount = 1 / 25
+        database.apply_cost(transaction.seller_id, vouch_amount)
+        self.pot_amount += vouch_amount
+        self.transactions.add(transaction)
+
+    def reset_creditors(self):
+        self.transactions.clear()
+        self.pot_amount = 0
+
+
+class DeltaTimePaymentSystem(WindowTransactionPaymentSystem):
+    def get_shares_mapping(self, total_amount, database=None, debitor_id=None):
         sorted_transactions = sorted([[t.seller_id, t.timestep] for t in self.transactions],
                                      key=lambda elem: elem[1])
         sorted_transactions.append([-1, self.timestep])
@@ -164,8 +223,8 @@ class DeltaTimePaymentSystem(TransactionPaymentSystem):
         return mapping
 
 
-class SmallDeviationPaymentSystem(TransactionPaymentSystem):
-    def get_shares_mapping(self, total_amount):
+class SmallDeviationPaymentSystem(WindowTransactionPaymentSystem):
+    def get_shares_mapping(self, total_amount, database=None, debitor_id=None):
         if len(self.transactions) <= 1:
             return {t.seller_id: total_amount for t in self.transactions}
         df = pd.DataFrame([[t.seller_id, t.relative_angle, 0] for t in self.transactions],
@@ -192,7 +251,7 @@ class PaymentDB:
         self.info_share = info_share
         for robot_id in population_ids:
             self.database[robot_id] = {"reward": initial_reward,
-                                       "payment_system": TransactionPaymentSystem()}
+                                       "payment_system": NumpyWindowTransactionPaymentSystem()}
 
     def step(self):
         for robot_id in self.database:
@@ -202,21 +261,20 @@ class PaymentDB:
         self.database[robot_id]["reward"] += reward
 
     def record_transaction(self, transaction: Transaction):
-        self.database[transaction.buyer_id]["payment_system"].record_transaction(transaction)
+        self.database[transaction.buyer_id]["payment_system"].record_transaction(transaction, self)
 
     def pay_creditors(self, debitor_id, total_reward=1):
-        mapping = self.database[debitor_id]["payment_system"].get_shares_mapping(self.info_share)
-        # print(mapping)
+        mapping = self.database[debitor_id]["payment_system"].get_shares_mapping(self.info_share * total_reward, self, debitor_id)
         for creditor_id, share in mapping.items():
-            self.database[debitor_id]["reward"] -= share * total_reward
-            self.database[creditor_id]["reward"] += share * total_reward
+            self.database[debitor_id]["reward"] -= share
+            self.database[creditor_id]["reward"] += share
         self.database[debitor_id]["payment_system"].reset_creditors()
 
     def get_reward(self, robot_id):
         return self.database[robot_id]["reward"]
 
     def apply_cost(self, robot_id, cost):
-        self.database[robot_id]["reward"] -= cost
-        if self.database[robot_id]["reward"] < 0:
-            self.database[robot_id]["reward"] = 0
+        if self.database[robot_id]["reward"] < cost:
             raise InsufficientFundsException
+        else:
+            self.database[robot_id]["reward"] -= cost

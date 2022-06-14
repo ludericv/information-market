@@ -6,12 +6,12 @@ from sys import argv
 
 def main():
     config = Configuration(config_file=argv[1])
-    if config.parameters["VISUALIZE"] != 0:
+    if config.value_of("VISUALIZE") != 0:
         main_controller = MainController(config)
         view_controller = ViewController(main_controller,
-                                         config.parameters["WIDTH"],
-                                         config.parameters["HEIGHT"],
-                                         config.parameters["FPS"])
+                                         config.value_of("WIDTH"),
+                                         config.value_of("HEIGHT"),
+                                         config.value_of("FPS"))
     else:
         for arg in argv[1:]:
             config = Configuration(config_file=arg)
@@ -19,7 +19,7 @@ def main():
 
 
 def run_processes(config: Configuration):
-    nb_runs = config.parameters["NB_RUNS"]
+    nb_runs = config.value_of("NB_RUNS")
     nb_cores = cpu_count()
 
     process_table = [Process(target=run, args=(config,)) for i in range(nb_runs)]
@@ -40,8 +40,8 @@ def run_processes(config: Configuration):
 
 def run(config):
     controller = MainController(config)
-    nb_honest = config.parameters["NB_HONEST"]
-    nb_saboteur = config.parameters["NB_ROBOTS"] - nb_honest
+    nb_honest = config.value_of("NB_HONEST")
+    nb_saboteur = config.value_of("NB_ROBOTS") - nb_honest
     controller.start_simulation()
     filename = f"{nb_honest}smart_t25_{nb_saboteur}smartgreedy_windowdev_50_RTmarket.txt"
     with open(f"../data/saboteur_comp/rewards/{filename}", "a") as file:

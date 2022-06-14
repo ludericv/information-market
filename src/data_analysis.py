@@ -1,4 +1,5 @@
 import re
+from time import perf_counter
 
 import pandas as pd
 import numpy as np
@@ -567,12 +568,42 @@ def test_windowdev():
             else:
                 final_mapping[seller] = mapping[seller]
     total_shares = sum(final_mapping.values())
-    print(final_mapping)
+
     for seller in final_mapping:
         final_mapping[seller] = final_mapping[seller] * total_amount/total_shares
     print(final_mapping)
 
 
+def test_np_windowdev():
+    angle_window = 30
+    total_amount = 0.5
+    transactions = [[1, 1, Location.NEST, 0], [2, 4, Location.NEST, 0],
+                    [2, 5, Location.NEST, 0], [3, 100, Location.NEST, 0],
+                    [4, 359, Location.NEST, 0]]
+    df_all = np.array(transactions)
+    angle_window = 30
+    final_mapping = {}
+    for location in Location:
+        df = df_all[df_all[:, 2] == location]
+        if df.shape[0] == 0:
+            continue
+        df[:, 3] = np.apply_along_axis(func1d=lambda row: (((df[:, 1] - row[1]) % 360) < angle_window).sum()
+                                                       + (((row[1] - df[:, 1]) % 360) < angle_window).sum() - 1,
+                                    axis=1, arr=df)
+        mapping = {seller: 0 for seller in df[:, 0]}
+        for row in df:
+            mapping[row[0]] += row[3]
+
+        for seller in mapping:
+            if seller in final_mapping:
+                final_mapping[seller] += mapping[seller]
+            else:
+                final_mapping[seller] = mapping[seller]
+
+    total_shares = sum(final_mapping.values())
+    for seller in final_mapping:
+        final_mapping[seller] = final_mapping[seller] * (total_amount) / total_shares
+    print(final_mapping)
 
 
 if __name__ == '__main__':
@@ -583,7 +614,15 @@ if __name__ == '__main__':
     # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")
     # make_violin_plots(["20smart_t25_5saboteur", "22smart_t25_3saboteur"], by=2)
     # powerpoint_plots()
-    # test_windowdev()
+    time = perf_counter()
+    for i in range(1):
+        test_windowdev()
+    dt1 = perf_counter()-time
+    time = perf_counter()
+    for i in range(1):
+        test_np_windowdev()
+    dt2 = perf_counter()-time
+    print(f"pd: {dt1}, np:{dt2}")
     # test_timedev()
     # thesis_plots()
-    compare_strats()
+    # compare_strats()

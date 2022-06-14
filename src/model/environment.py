@@ -48,9 +48,8 @@ class Environment:
         # demand in items that "perfect" robots would collect per step
         self.demand = demand
         demand_converted = demand*nb_robots*robot_speed/(2*norm([food_x-nest_x, food_y-nest_y]))
-        # self.market = Market(demand_converted, max_price)
-        self.market = RoundTripPriceMarket(2*norm([food_x-nest_x, food_y-nest_y])/robot_speed, max_price)
-        # self.market = FixedPriceMarket(max_price)
+        # self.market = RoundTripPriceMarket(2*norm([food_x-nest_x, food_y-nest_y])/robot_speed, max_price)
+        self.market = FixedPriceMarket(max_price)
         self.img = None
         self.timestep = 0
 
@@ -209,6 +208,9 @@ class Environment:
         for bot_id, pos in self.foraging_spawns[Location.FOOD].items():
             canvas.create_image(pos[0] - 8, pos[1] - 8, image=self.img, anchor='nw')
 
+        # for bot_id, pos in self.foraging_spawns[Location.NEST].items():
+        #     canvas.create_image(pos[0] - 8, pos[1] - 8, image=self.img, anchor='nw')
+
     def draw_best_bot(self, canvas):
         circle = canvas.create_oval(self.population[self.best_bot_id].pos[0] - 4,
                                     self.population[self.best_bot_id].pos[1] - 4,
@@ -258,8 +260,9 @@ class Environment:
     def deposit_food(self, robot):
         robot.drop_food()
         self.foraging_spawns[Location.NEST].pop(robot.id)
+
         reward = self.market.sell_strawberry(robot.id)
-        # print(f"Strawberry sold for ${round(reward, 2)} by bot {robot.id}")
+
         self.payment_database.pay_reward(robot.id, reward=reward)
         self.payment_database.pay_creditors(robot.id, total_reward=reward)
 
