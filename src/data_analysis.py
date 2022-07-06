@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import wilcoxon
+from scipy.stats import wilcoxon, mannwhitneyu, ranksums
 
 from model.market import exponential_model, logistics_model
 from model.navigation import Location
@@ -90,55 +90,62 @@ def compare_behaviors():
 
 
 def powerpoint_plots():
-    filenames = ["24smart_t25_1greedy",
-                 "22smart_t25_3greedy",
-                 "20smart_t25_5greedy"]
-    # show_run_proportions(filenames, by=3)
-    make_violin_plots(filenames, by=3)
-    filenames = ["24smart_t25_1greedy_SoR_50",
-                 "22smart_t25_3greedy_SoR_50",
-                 "20smart_t25_5greedy_SoR_50"]
-    make_violin_plots(filenames, by=3, comparison_on="payment_types")
-    # show_run_proportions(filenames, by=3, comparison_on="payment_types")
-    filenames = ["24smart_t25_1saboteur",
-                 "22smart_t25_3saboteur",
-                 "20smart_t25_5saboteur"]
-    make_violin_plots(filenames, by=3)
-    # show_run_proportions(filenames, by=3)
-    filenames = ["24smart_t25_1saboteur_SoR_50",
-                 "22smart_t25_3saboteur_SoR_50",
-                 "20smart_t25_5saboteur_SoR_50"]
-    make_violin_plots(filenames, by=3, comparison_on="payment_types")
-    # show_run_proportions(filenames, by=3, comparison_on="payment_types")
-    filenames = ["24smart_t25_1smartboteur_SoR_50",
-                 "22smart_t25_3smartboteur_SoR_50",
-                 "20smart_t25_5smartboteur_SoR_50"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Individual Share of Items Collected", metric="items_collected")
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Individual Share of Total Reward")
-
+    # filenames = ["24smart_t25_1greedy",
+    #              "22smart_t25_3greedy",
+    #              "20smart_t25_5greedy"]
+    # # show_run_proportions(filenames, by=3)
+    # make_violin_plots(filenames, by=3)
+    # filenames = ["24smart_t25_1greedy_SoR_50",
+    #              "22smart_t25_3greedy_SoR_50",
+    #              "20smart_t25_5greedy_SoR_50"]
+    # make_violin_plots(filenames, by=3, comparison_on="payment_types")
+    # # show_run_proportions(filenames, by=3, comparison_on="payment_types")
+    # filenames = ["24smart_t25_1saboteur",
+    #              "22smart_t25_3saboteur",
+    #              "20smart_t25_5saboteur"]
+    # make_violin_plots(filenames, by=3)
+    # # show_run_proportions(filenames, by=3)
+    # filenames = ["24smart_t25_1saboteur_SoR_50",
+    #              "22smart_t25_3saboteur_SoR_50",
+    #              "20smart_t25_5saboteur_SoR_50"]
+    # make_violin_plots(filenames, by=3, comparison_on="payment_types")
+    # # show_run_proportions(filenames, by=3, comparison_on="payment_types")
+    # filenames = ["24smart_t25_1smartboteur_SoR_50",
+    #              "22smart_t25_3smartboteur_SoR_50",
+    #              "20smart_t25_5smartboteur_SoR_50"]
+    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Individual Share of Items Collected", metric="items_collected")
+    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Individual Share of Total Reward")
+    #
     # show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
     filenames = ["24smart_t25_1smartboteur_SoR_50_RTmarket",
                  "22smart_t25_3smartboteur_SoR_50_RTmarket",
                  "20smart_t25_5smartboteur_SoR_50_RTmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="SoR + Round Trip Time")
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Share of Reward based on Round-Trip Duration")
+    # # show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
+    # filenames = ["24smart_t25_1smartboteur_windowdev_50_fixedmarket",
+    #              "22smart_t25_3smartboteur_windowdev_50_fixedmarket",
+    #              "20smart_t25_5smartboteur_windowdev_50_fixedmarket"]
+    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Window Filter Reward Share Transactions, Fixed Reward")
+    #
+    filenames = ["24smart_t25_1smartboteur_windowdev_50_RTmarket_bis",
+                 "22smart_t25_3smartboteur_windowdev_50_RTmarket_bis",
+                 "20smart_t25_5smartboteur_windowdev_50_RTmarket_bis"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Window Filter and Round-Trip Duration Reward")
     # show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
-    filenames = ["24smart_t25_1smartboteur_windowdev_50_RTmarket",
-                 "22smart_t25_3smartboteur_windowdev_50_RTmarket",
-                 "20smart_t25_5smartboteur_windowdev_50_RTmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Window Filter Payment, Round Trip Market")
-    # show_run_proportions(filenames, by=3, comparison_on="saboteur_comp")
-    filenames = ["24smart_t25_1smartboteur_error^2dev_50_RTmarket",
-                 "22smart_t25_3smartboteur_error^2dev_50_RTmarket",
-                 "20smart_t25_5smartboteur_error^2dev_50_RTmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Square Error Filter Payment, Round Trip Market")
-    filenames = ["24smart_t25_1smartboteur_deltatime_50_RTmarket",
-                 "22smart_t25_3smartboteur_deltatime_50_RTmarket",
-                 "20smart_t25_5smartboteur_deltatime_50_RTmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Delta Time Payment, Round Trip Market")
+    # filenames = ["24smart_t25_1smartboteur_error^2dev_50_RTmarket",
+    #              "22smart_t25_3smartboteur_error^2dev_50_RTmarket",
+    #              "20smart_t25_5smartboteur_error^2dev_50_RTmarket"]
+    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Square Error Filter Payment, Round Trip Market")
+    # filenames = ["24smart_t25_1smartboteur_deltatime_50_RTmarket",
+    #              "22smart_t25_3smartboteur_deltatime_50_RTmarket",
+    #              "20smart_t25_5smartboteur_deltatime_50_RTmarket"]
+    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Delta Time Payment, Round Trip Market")
     filenames = ["24smart_t25_1smartgreedy_windowdev_50_RTmarket",
                  "22smart_t25_3smartgreedy_windowdev_50_RTmarket",
                  "20smart_t25_5smartgreedy_windowdev_50_RTmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Window Filter Payment, Round Trip Market")
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", title="Window Filter and Round-Trip Duration Reward")
+    filenames = ["25honest_t25_1smartboteur_windowdev_50_RTmarket_bis",
+                 "22smart_t25_3smartboteur_windowdev_50_RTmarket_bis"]
 
 def compare_payment_types():
     filenames = []
@@ -344,8 +351,8 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
         "smartgreedy": "limegreen"
     }
 #    sns.set_palette(palette)
-    x_name = "experiment"
-    y_name = "proportion of total wealth (%)"
+    x_name = "Experiment"
+    y_name = "Proportion of total wealth (%)"
     hue_name = "behavior"
 
     for row in range(nrows):
@@ -369,6 +376,7 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
             # means = df.iloc[:, :n_honest].apply(np.mean, axis=1) * 100 / totals
             honest_flat = pd.DataFrame(df_rel.iloc[:, :n_honest].to_numpy().flatten())
             bad_flat = pd.DataFrame(df_rel.iloc[:, -n_bad:].to_numpy().flatten())
+            print(filename, ranksums(honest_flat[:len(honest_flat)//15], honest_flat[len(honest_flat)//15:]))
 
             # means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1) * 100 / totals
             # Draw a nested violinplot and split the violins for easier comparison
@@ -384,13 +392,13 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
         row_df.index = [i for i in range(row_df.shape[0])]
         temp = pd.DataFrame(row_df.to_dict())
         sns.violinplot(data=temp, x=x_name, y=y_name, hue=hue_name,
-                       split=True, inner="quart", linewidth=2, ax=frame, palette=palette)
+                       split=True, inner="quart", linewidth=2, ax=frame, palette=palette, cut=0)
         sns.despine(left=True)
 
     plt.show()
 
 
-def items_collected_violin_plot(df, frame, n_good, n_bad, good_name="naive", bad_name="saboteur"):
+def items_collected_violin_plot(df, frame, n_good, n_bad, good_name="naive", bad_name="saboteur", xlabel="all"):
     palette = {
         "naive": "tab:blue",
         "careful" : "tab:blue",
@@ -409,10 +417,11 @@ def items_collected_violin_plot(df, frame, n_good, n_bad, good_name="naive", bad
     bad_flat = pd.concat([bad_flat, bads], axis=1)
     final_df = pd.concat([honest_flat, bad_flat])
     final_df.columns = ["items collected", "behavior"]
-    final_df["run"] = "all"
+    final_df["run"] = xlabel
     split=n_bad > 0 and n_good > 0
     sns.violinplot(data=final_df, x="run", y="items collected", hue="behavior",
-                   split=split, inner="quart", linewidth=2, ax=frame, palette=palette)
+                   split=split, inner="quart", linewidth=2, ax=frame, palette=palette,
+                   bw=0.275)
     frame.set(xlabel=None, ylabel=None)
     #sns.despine(left=True)
 
@@ -468,22 +477,77 @@ def thesis_plots():
     # chap8_2()
 
     # Chapter 9 - Section 1
-    filenames = ["24smart_t25_1smartboteur_SoR_50",
-                 "22smart_t25_3smartboteur_SoR_50",
-                 "20smart_t25_5smartboteur_SoR_50"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
-                      title="Wealth Repartition, Reward Share Transactions, Fixed Reward")
-    filenames = ["24smart_t25_1smartboteur_SoR_50_RTmarket",
-                 "22smart_t25_3smartboteur_SoR_50_RTmarket",
-                 "20smart_t25_5smartboteur_SoR_50_RTmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
-                      title="Wealth Repartition, Reward Share Transactions, Round-trip Duration Reward")
+    # filenames = ["24smart_t25_1smartboteur_SoR_50",
+    #              "22smart_t25_3smartboteur_SoR_50",
+    #              "20smart_t25_5smartboteur_SoR_50"]
+    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
+    #                   title="Wealth Repartition, Reward Share Transactions, Fixed Reward")
+    # filenames = ["24smart_t25_1smartboteur_SoR_50_RTmarket",
+    #              "22smart_t25_3smartboteur_SoR_50_RTmarket",
+    #              "20smart_t25_5smartboteur_SoR_50_RTmarket"]
+    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
+    #                   title="Wealth Repartition, Reward Share Transactions, Round-trip Duration Reward")
+    #
+    # filenames = ["24smart_t25_1smartgreedy_windowdev_50_RTmarket",
+    #              "22smart_t25_3smartgreedy_windowdev_50_RTmarket",
+    #              "20smart_t25_5smartgreedy_windowdev_50_RTmarket"]
+    # make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
+    #                   title=" Wealth Repartition, Reward Share Transactions, Round-trip Duration Reward")
+    #
+    filenames = ["24smart_t25_1smartboteur_vouchwindowdev_50_fixedmarket",
+                 "22smart_t25_3smartboteur_vouchwindowdev_50_fixedmarket",
+                 "20smart_t25_5smartboteur_vouchwindowdev_50_fixedmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", metric="rewards",
+                      title="Wealth Repartition, Window + Vouch, Fixed Reward")
 
-    filenames = ["24smart_t25_1smartgreedy_windowdev_50_RTmarket",
-                 "22smart_t25_3smartgreedy_windowdev_50_RTmarket",
-                 "20smart_t25_5smartgreedy_windowdev_50_RTmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
-                      title=" Wealth Repartition, Reward Share Transactions, Round-trip Duration Reward")
+    # Final Presentation
+
+    # fig, axs = plt.subplots(1, 4, sharey=True)
+    # fig.set_size_inches(12, 6)
+    # fig.suptitle("Swarm Performance")
+    # fig.supylabel("Number of Items Collected")
+    # fig.supxlabel("Experiment")
+    # df = pd.read_csv("../data/behaviors/items_collected/25honest.txt", header=None)
+    # items_collected_violin_plot(df, axs[2], 25, 0, xlabel="25 naive")
+    # df = pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None)
+    # items_collected_violin_plot(df, axs[0], 24, 1, xlabel="24 naive vs 1 saboteur")
+    # df = pd.read_csv("../data/behaviors/items_collected/25smart_t25.txt", header=None)
+    # items_collected_violin_plot(df, axs[3], 25, 0, xlabel="25 smart", good_name="smart", bad_name="smartboteur")
+    # df = pd.read_csv("../data/saboteur_comp/items_collected/24smart_t25_1smartboteur_SoR_50.txt", header=None)
+    # items_collected_violin_plot(df, axs[1], 24, 1, xlabel="24 smart vs 1 smartboteur", good_name="smart", bad_name="smartboteur")
+    # plt.show()
+    #
+    # fig, axs = plt.subplots(1, 3, sharey=True)
+    # fig.set_size_inches(12, 6)
+    # fig.suptitle("Swarm Performance")
+    # fig.supylabel("Number of Items Collected")
+    # fig.supxlabel("Experiment")
+    # df = pd.read_csv("../data/saboteur_comp/items_collected/24smart_t25_1smartboteur_SoR_50.txt", header=None)
+    # items_collected_violin_plot(df, axs[0], 24, 1, xlabel="24 smart vs 1 smartboteur")
+    # df = pd.read_csv("../data/saboteur_comp/items_collected/22smart_t25_3smartboteur_SoR_50.txt", header=None)
+    # items_collected_violin_plot(df, axs[1], 24, 1, xlabel="22 smart vs 3 smartboteur")
+    # df = pd.read_csv("../data/saboteur_comp/items_collected/20smart_t25_5smartboteur_SoR_50.txt", header=None)
+    # items_collected_violin_plot(df, axs[2], 24, 1, xlabel="20 smart vs 5 smartboteur")
+    # plt.show()
+
+    # df =pd.read_csv("../data/saboteur_comp/rewards/20smart_t25_5smartboteur_SoR_50_RTmarket.txt")
+    # x = df.iloc[:, :20].to_numpy().flatten()
+    # y = df.iloc[:, 20:].to_numpy().flatten()
+    # res = mannwhitneyu(x, y, alternative='greater')
+    # print(res)
+
+    fig, axs = plt.subplots(1, 2, sharey=True)
+    fig.set_size_inches(6, 6)
+    fig.suptitle("Swarm Performance")
+    fig.supylabel("Number of Items Collected")
+    fig.supxlabel("Experiment")
+    df = pd.read_csv("../data/saboteur_comp/items_collected/24smart_t25_1smartboteur_SoR_50.txt", header=None)
+    items_collected_violin_plot(df, axs[0], 24, 1, xlabel="24 smart vs 1 smartboteur")
+    df = pd.read_csv("../data/saboteur_comp/items_collected/24smart_t25_1smartboteur_vouchwindowdev_50_fixedmarket.txt", header=None)
+    items_collected_violin_plot(df, axs[1], 24, 1, xlabel="24 smart vs 1 smartboteur")
+    plt.show()
+
+
 
 
 def chap8_2():
@@ -605,6 +669,40 @@ def test_np_windowdev():
         final_mapping[seller] = final_mapping[seller] * (total_amount) / total_shares
     print(final_mapping)
 
+def paper_plots():
+    fig, axs = plt.subplots(1, 6, sharey=True)
+    fig.set_size_inches(18, 6)
+    fig.suptitle("Swarm Performance")
+    fig.supylabel("Number of Items Collected")
+    fig.supxlabel("Experiment")
+    df = pd.read_csv("../data/behaviors/items_collected/25honest.txt", header=None)
+    items_collected_violin_plot(df, axs[0], 25, 0, xlabel="25 naive")
+    df = pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None)
+    items_collected_violin_plot(df, axs[1], 24, 1, xlabel="24 naive vs 1 saboteur")
+    df = pd.read_csv("../data/behaviors/items_collected/25smart_t25.txt", header=None)
+    items_collected_violin_plot(df, axs[2], 25, 0, xlabel="25 smart", good_name="smart", bad_name="smartboteur")
+    df = pd.read_csv("../data/saboteur_comp/items_collected/24smart_t25_1smartboteur_SoR_50.txt", header=None)
+    items_collected_violin_plot(df, axs[3], 24, 1, xlabel="24 smart vs 1 smartboteur", good_name="smart", bad_name="smartboteur")
+    df = pd.read_csv("../data/behaviors/items_collected/25smart_t25_0smartboteur_weighted.txt", header=None)
+    items_collected_violin_plot(df, axs[4], 25, 0, xlabel="25 smart weighted", good_name="smart", bad_name="smartboteur")
+    df = pd.read_csv("../data/behaviors/items_collected/24smart_t25_1smartboteur_weighted.txt", header=None)
+    items_collected_violin_plot(df, axs[5], 24, 1, xlabel="24 smart vs 1 smartboteur weighted", good_name="smart",
+                                bad_name="smartboteur")
+    plt.show()
+
+    filenames = ["24smart_t25_1smartboteur_windowdev_50_fixedmarket",
+                 "22smart_t25_3smartboteur_windowdev_50_fixedmarket",
+                 "20smart_t25_5smartboteur_windowdev_50_fixedmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
+                      title="Wealth Repartition - Window Filter")
+
+    filenames = ["24smart_t25_1smartboteur_vouchwindowdev_50_fixedmarket",
+                 "22smart_t25_3smartboteur_vouchwindowdev_50_fixedmarket",
+                 "20smart_t25_5smartboteur_vouchwindowdev_50_fixedmarket"]
+    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", metric="rewards",
+                      title="Wealth Repartition - Window Filter with Vouching")
+
+
 
 if __name__ == '__main__':
     # supply_demand_simulation()
@@ -614,15 +712,16 @@ if __name__ == '__main__':
     # show_run_proportions(["20smart_t25_5freerider_10+10"], comparison_on="stop_time")
     # make_violin_plots(["20smart_t25_5saboteur", "22smart_t25_3saboteur"], by=2)
     # powerpoint_plots()
-    time = perf_counter()
-    for i in range(1):
-        test_windowdev()
-    dt1 = perf_counter()-time
-    time = perf_counter()
-    for i in range(1):
-        test_np_windowdev()
-    dt2 = perf_counter()-time
-    print(f"pd: {dt1}, np:{dt2}")
+    # time = perf_counter()
+    # for i in range(1):
+    #     test_windowdev()
+    # dt1 = perf_counter()-time
+    # time = perf_counter()
+    # for i in range(1):
+    #     test_np_windowdev()
+    # dt2 = perf_counter()-time
+    # print(f"pd: {dt1}, np:{dt2}")
     # test_timedev()
     # thesis_plots()
     # compare_strats()
+    paper_plots()
