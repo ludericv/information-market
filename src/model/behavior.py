@@ -35,6 +35,7 @@ class Behavior(ABC):
     def get_dr(self):
         return self.dr
 
+    @abstractmethod
     def get_target(self, location):
         return self.navigation_table.get_target(location)
 
@@ -64,7 +65,7 @@ class HonestBehavior(Behavior):
                         self.navigation_table.replace_target(location, new_target)
                         break
                     except InsufficientFundsException:
-                        print(f"No money for robot {self.id}")
+                        # print(f"No money for robot {self.id}")
                         pass
                     except NoInformationSoldException:
                         pass
@@ -222,16 +223,23 @@ class SmartBehavior(HonestBehavior):
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         other_target.set_distance(other_target.get_distance() + session.get_distance_from(
                             bot_id))
+
                         if not self.navigation_table.is_location_known(location) or \
                                 self.difference_score(self.navigation_table.get_location_vector(location),
                                                       other_target.get_distance()) < self.threshold:
-                            self.navigation_table.replace_target(location, other_target)
+                            new_target = self.strategy.combine(self.navigation_table.get_target(location),
+                                                               other_target,
+                                                               np.array([0, 0]))
+                            self.navigation_table.replace_target(location, new_target)
                             self.pending_information[location].clear()
                         else:
                             for target in self.pending_information[location].values():
                                 if self.difference_score(target.get_distance(),
                                                          other_target.get_distance()) < self.threshold:
-                                    self.navigation_table.replace_target(location, other_target)
+                                    new_target = self.strategy.combine(target,
+                                                                       other_target,
+                                                                       np.array([0, 0]))
+                                    self.navigation_table.replace_target(location, new_target)
                                     self.pending_information[location].clear()
                                     break
                             else:

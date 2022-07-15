@@ -131,8 +131,10 @@ class WindowTransactionPaymentSystem(PaymentSystem):
             df = df_all[df_all["location"] == location]
             if df.shape[0] == 0:
                 continue
-            df["alike"] = df.apply(func=lambda row: (((df.iloc[:, 1] - row[1]) % 360) < angle_window).sum()
-                                                             + (((row[1] - df.iloc[:, 1]) % 360) < angle_window).sum() - 1,
+            if df.shape[0] == 0:
+                continue
+            df["alike"] = df.apply(func=lambda row: (((df.loc[:, "angle"] - row[1]) % 360) < angle_window).sum()
+                                                             + (((row[1] - df.loc[:, "angle"]) % 360) < angle_window).sum() - 1,
                                             axis=1)
             sellers_to_alike = df.groupby("seller").sum().to_dict()["alike"]
             mapping = {seller: sellers_to_alike[seller] for seller in sellers_to_alike}
@@ -199,7 +201,7 @@ class NumpyWindowTransactionPaymentSystem(PaymentSystem):
         return final_mapping
 
     def record_transaction(self, transaction: Transaction, database):
-        vouch_amount = 1 / 25
+        vouch_amount = 0 / 25
         database.apply_cost(transaction.seller_id, vouch_amount)
         self.pot_amount += vouch_amount
         self.transactions.add(transaction)
@@ -247,6 +249,7 @@ class SmallDeviationPaymentSystem(WindowTransactionPaymentSystem):
 
 class PaymentDB:
     def __init__(self, population_ids, initial_reward, info_share):
+        self.nb_transactions = 0
         self.database = {}
         self.info_share = info_share
         for robot_id in population_ids:
@@ -254,6 +257,7 @@ class PaymentDB:
                                        "payment_system": NumpyWindowTransactionPaymentSystem()}
 
     def step(self):
+        # print(f"{self.nb_transactions} transactions for the moment")
         for robot_id in self.database:
             self.database[robot_id]["payment_system"].step()
 
@@ -261,6 +265,7 @@ class PaymentDB:
         self.database[robot_id]["reward"] += reward
 
     def record_transaction(self, transaction: Transaction):
+        self.nb_transactions += 1
         self.database[transaction.buyer_id]["payment_system"].record_transaction(transaction, self)
 
     def pay_creditors(self, debitor_id, total_reward=1):

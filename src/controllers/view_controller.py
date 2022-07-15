@@ -34,7 +34,7 @@ class ViewController:
 
         self.animation_ended = False
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.paused = False
+        self.paused = True
         self.can_render = False
         self.create_bindings()
 

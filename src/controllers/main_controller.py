@@ -63,8 +63,11 @@ class MainController:
                                        robot_comm_stop_time=self.config.value_of("COMM_STOPTIME")
                                        )
         self.tick = 0
+        self.rewards_evolution = ""
 
     def step(self):
+        if self.config.value_of("RECORD") == 1 and self.tick % self.config.value_of("RECORD_EVERY") == 0:
+            self.rewards_evolution += f"{self.tick},{self.get_reward_stats()}"
         if self.tick < self.config.value_of("SIMULATION_STEPS"):
             self.tick += 1
             self.environment.step()
@@ -110,3 +113,6 @@ class MainController:
 
     def get_robot_at(self, x, y):
         return self.environment.get_robot_at(x, y)
+
+    def get_rewards_evolution(self):
+        return self.rewards_evolution

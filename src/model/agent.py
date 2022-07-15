@@ -216,7 +216,7 @@ class Agent:
                                        self.behavior.navigation_table.get_location_vector(Location.FOOD),
                                        self.orientation)[1],
                                    arrow=LAST,
-                                   fill="black")
+                                   fill="darkgreen")
         arrow = canvas.create_line(self.pos[0],
                                    self.pos[1],
                                    self.pos[0] + rotate(
@@ -226,7 +226,7 @@ class Agent:
                                        self.behavior.navigation_table.get_location_vector(Location.NEST),
                                        self.orientation)[1],
                                    arrow=LAST,
-                                   fill="black")
+                                   fill="darkorange")
 
     def draw_orientation(self, canvas):
         line = canvas.create_line(self.pos[0],
