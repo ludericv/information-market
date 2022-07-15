@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from collections import Counter, deque
 
 import numpy as np
 
@@ -37,9 +36,9 @@ class OutlierPenalisationPaymentSystem(PaymentSystem):
         self.pot_amount = 0
 
     def new_transaction(self, transaction: Transaction, payment_api):
-        vouch_amount = 1 / 25
-        payment_api.apply_cost(transaction.seller_id, vouch_amount)
-        self.pot_amount += vouch_amount
+        stake_amount = 1 / 25
+        payment_api.apply_cost(transaction.seller_id, stake_amount)
+        self.pot_amount += stake_amount
         self.transactions.add(transaction)
 
     def new_reward(self, reward_share_to_distribute, payment_api, rewarded_id):
