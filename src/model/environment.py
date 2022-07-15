@@ -77,7 +77,6 @@ class Environment:
             self.check_locations(robot)
             robot.step()
 
-        self.payment_database.step()
         self.market.step()
 
     def create_robots(self):
