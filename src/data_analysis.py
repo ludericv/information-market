@@ -11,6 +11,23 @@ from model.market import exponential_model, logistics_model
 from model.navigation import Location
 
 
+palette = {
+        "naive": "tab:blue",
+        "careful" : "tab:blue",
+        "smart": "tab:blue",
+        "sceptical": "tab:blue",
+        "greedy": "limegreen",
+        "saboteur": "firebrick",
+        "smartboteur": "firebrick",
+        "scaboteur": "firebrick",
+    }
+
+name_conversion = {
+    "honest" : "naive",
+    "smart" : "sceptical",
+    "smartboteur" : "scaboteur"
+}
+
 def main():
     dec_const = pd.read_csv("../data/old_data/results_decaying_constant.txt", header=None).values.flatten()
     w_dec_const = pd.read_csv("../data/old_data/results_weighteddecaying_constant.txt", header=None).values.flatten()
@@ -46,19 +63,47 @@ def main2():
 
 def compare_strats():
     strats = ["age", "w-age", "lin", "w-lin", "exp", "w-exp"]
+    strats_translated = {
+        "age" : "Constant",
+        "w-age" : "W-Constant",
+        "lin" : "Linear",
+        "w-lin" : "W-Linear",
+        "exp" : "Exponential",
+        "w-exp" : "W-Exponential"
+    }
     mu_folders = ["low_0", "med_05", "high_10"]
     sd_folders = ["low_01", "high_10"]
     popsize_folders = {"low_10", "high_50"}
     d = {"mu": mu_folders, "sd": sd_folders, "popsize": popsize_folders}
     for f1 in d:
-        for f2 in d[f1]:
-            fig, axs = plt.subplots(1, len(strats), sharey=True)
-            fig.set_size_inches(16, 6)
-            fig.suptitle(f"{f1}: {f2}")
-            for i, s in enumerate(strats):
-                df = pd.read_csv(f"../data/quality_comp/{f1}/{f2}/{s}.txt").values.flatten()
-                pd.DataFrame(df).boxplot(ax=axs[i]).set_title(s)
-            plt.show()
+        fig, axs = plt.subplots(1, len(d[f1]), sharey=True)
+        fig.suptitle("Comparing different ways to decrease quality and to combine location information")
+        fig.set_size_inches(8*len(d[f1]), 6)
+        for i, f2 in enumerate(d[f1]):
+            print(axs[i])
+            items_tot = []
+            strategies_tot = []
+            for s in strats:
+                items = (pd.read_csv(f"../data/quality_comp/{f1}/{f2}/{s}.txt", header=None).values.flatten() - 3).tolist()
+                strategies = [strats_translated[s] for item in items]
+                strategies_tot += strategies
+                items_tot += items
+            df = pd.DataFrame(items_tot)
+            df.columns = ["Number of Items Collected"]
+            df["Strategy"] = strategies_tot
+
+            title = ""
+            match f1:
+                case "mu":
+                    title = f"m = 0.{f2.split('_')[1]}, s = 0.05, N = 25"
+                case "sd":
+                    title = f"m = 0.05, s = 0.{f2.split('_')[1]}, N = 25"
+                case "popsize":
+                    title = f"m = 0.05, s = 0.05, N = {f2.split('_')[1]}"
+
+            sns.boxplot(data=df, x="Strategy", y="Number of Items Collected", linewidth=2, ax=axs[i])
+            axs[i].set_title(title)
+        plt.show()
 
 
 def compare_behaviors():
@@ -343,14 +388,6 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
     ncols = by
     fig, axs = plt.subplots(nrows=nrows, ncols=1, sharey=True, sharex=True)
     fig.set_size_inches(3 * ncols, 6 * nrows)
-    palette = {
-        "smart": "tab:blue",
-        "greedy": "limegreen",
-        "saboteur": "firebrick",
-        "smartboteur": "firebrick",
-        "smartgreedy": "limegreen"
-    }
-#    sns.set_palette(palette)
     x_name = "Experiment"
     y_name = "Proportion of total wealth (%)"
     hue_name = "behavior"
@@ -367,7 +404,9 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
             df = pd.read_csv(f"../data/{comparison_on}/{metric}/{filename}.txt", header=None)
             n_honest = int(re.search('[0-9]+', filename).group())
             honest_name = re.search('[a-z]+', filename.split("_")[0]).group()
+            honest_name = name_conversion[honest_name]
             bad_name = re.search('[a-z]+', filename.split("_")[2]).group()
+            bad_name = name_conversion[bad_name]
             n_bad = 25 - n_honest
 
             totals = df.apply(np.sum, axis=1)
@@ -393,20 +432,52 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
         temp = pd.DataFrame(row_df.to_dict())
         sns.violinplot(data=temp, x=x_name, y=y_name, hue=hue_name,
                        split=True, inner="quart", linewidth=2, ax=frame, palette=palette, cut=0)
-        sns.despine(left=True)
 
     plt.show()
 
+def make_boxplots(filenames, by=1, comparison_on="behaviors", metric="rewards",
+                      title="Individual reward share across subpopulations"):
+    nrows = len(filenames) // by
+    ncols = by
+    x_name = "Experiment"
+    y_name = "Proportion of total wealth (%)"
+    hue_name = "behavior"
 
-def items_collected_violin_plot(df, frame, n_good, n_bad, good_name="naive", bad_name="saboteur", xlabel="all"):
-    palette = {
-        "naive": "tab:blue",
-        "careful" : "tab:blue",
-        "smart": "tab:blue",
-        "greedy": "limegreen",
-        "saboteur": "firebrick",
-        "smartboteur": "firebrick"
-    }
+    for row in range(nrows):
+        fig, axs = plt.subplots(1, ncols, sharey=True)
+        fig.suptitle(title)
+        fig.supxlabel(x_name)
+        fig.supylabel(y_name)
+        fig.set_size_inches(3*ncols, 6)
+        for col in range(ncols):
+            filename = filenames[row * ncols + col]
+            df = pd.read_csv(f"../data/{comparison_on}/{metric}/{filename}.txt", header=None)
+            n_honest = int(re.search('[0-9]+', filename).group())
+            honest_name = re.search('[a-z]+', filename.split("_")[0]).group()
+            honest_name = name_conversion[honest_name]
+            bad_name = re.search('[a-z]+', filename.split("_")[2]).group()
+            bad_name = name_conversion[bad_name]
+            n_bad = 25 - n_honest
+
+            totals = df.apply(np.sum, axis=1)
+            df_rel = df.div(totals, axis=0) * 100
+            honest_flat = pd.DataFrame(df_rel.iloc[:, :n_honest].to_numpy().flatten())
+            bad_flat = pd.DataFrame(df_rel.iloc[:, -n_bad:].to_numpy().flatten())
+            print(filename, ranksums(honest_flat, bad_flat))
+
+            goods = pd.DataFrame(np.full(honest_flat.shape, honest_name))
+            bads = pd.DataFrame(np.full(honest_flat.shape, bad_name))
+            honest_flat = pd.concat([honest_flat, goods], axis=1)
+            bad_flat = pd.concat([bad_flat, bads], axis=1)
+            final_df = pd.concat([honest_flat, bad_flat])
+            final_df.columns = [y_name, hue_name]
+            final_df[x_name] = f"{n_honest} {honest_name} vs {n_bad} {bad_name}"
+            axs[col].set_title(chr(col+65), fontweight="bold")
+            sns.boxplot(data=final_df, x=x_name, y=y_name, hue=hue_name, linewidth=2, ax=axs[col], palette=palette).set(xlabel=None, ylabel=None)
+        plt.show()
+
+
+def items_collected_violin_plot(df, frame, n_good, n_bad, good_name="naive", bad_name="saboteur", xlabel="all", title=None):
 
     honest_flat = pd.DataFrame(df.iloc[:, :n_good].to_numpy().flatten())
     bad_flat = pd.DataFrame(df.iloc[:, n_good:n_good+n_bad].to_numpy().flatten())
@@ -422,8 +493,27 @@ def items_collected_violin_plot(df, frame, n_good, n_bad, good_name="naive", bad
     sns.violinplot(data=final_df, x="run", y="items collected", hue="behavior",
                    split=split, inner="quart", linewidth=2, ax=frame, palette=palette,
                    bw=0.275)
+    if title:
+        frame.set_title(title, fontweight="bold")
     frame.set(xlabel=None, ylabel=None)
-    #sns.despine(left=True)
+
+
+def items_collected_boxplot(df, frame, n_good, n_bad, good_name="naive", bad_name="saboteur", xlabel="all", title=None):
+    honest_flat = pd.DataFrame(df.iloc[:, :n_good].to_numpy().flatten())
+    bad_flat = pd.DataFrame(df.iloc[:, n_good:n_good+n_bad].to_numpy().flatten())
+
+    goods = pd.DataFrame(np.full(honest_flat.shape, good_name))
+    bads = pd.DataFrame(np.full(bad_flat.shape, bad_name))
+    honest_flat = pd.concat([honest_flat, goods], axis=1)
+    bad_flat = pd.concat([bad_flat, bads], axis=1)
+    final_df = pd.concat([honest_flat, bad_flat])
+    final_df.columns = ["items collected", "behavior"]
+    final_df["run"] = xlabel
+    sns.boxplot(data=final_df, x="run", y="items collected", hue="behavior", linewidth=2,
+                   ax=frame, palette=palette)
+    if title:
+        frame.set_title(title, fontweight="bold")
+    frame.set(xlabel=None, ylabel=None)
 
 
 def test_angles():
@@ -670,39 +760,145 @@ def test_np_windowdev():
     print(final_mapping)
 
 def paper_plots():
-    fig, axs = plt.subplots(1, 6, sharey=True)
-    fig.set_size_inches(18, 6)
+    sns.set_style("whitegrid")
+    # fig, axs = plt.subplots(1, 4, sharey=True)
+    # fig.set_size_inches(12, 6)
+    # fig.suptitle("Swarm Performance")
+    # fig.supylabel("Number of Items Collected")
+    # fig.supxlabel("Experiment")
+    #
+    # df = pd.read_csv("../data/correlation/items_collected/25naive_0saboteur_nostake.txt", header=None)
+    # items_collected_violin_plot(df, axs[0], 25, 0, xlabel="25 naive")
+    #
+    # df = pd.read_csv("../data/correlation/items_collected/24naive_1saboteur_nostake.txt", header=None)
+    # items_collected_violin_plot(df, axs[1], 24, 1, xlabel="24 naive vs 1 saboteur")
+    #
+    # df = pd.read_csv("../data/correlation/items_collected/25smart_t25_0smartboteur_nostake.txt", header=None)
+    # items_collected_violin_plot(df, axs[2], 25, 0, xlabel="25 sceptical", good_name="sceptical", bad_name="scaboteur")
+    #
+    # df = pd.read_csv("../data/correlation/items_collected/24smart_t25_1smartboteur_nostake.txt", header=None)
+    # items_collected_violin_plot(df, axs[3], 24, 1, xlabel="24 sceptical vs 1 scaboteur", good_name="sceptical", bad_name="scaboteur")
+
+    # df = pd.read_csv("../data/behaviors/items_collected/25smart_t25_0smartboteur_weighted.txt", header=None)
+    # items_collected_violin_plot(df, axs[4], 25, 0, xlabel="25 smart weighted", good_name="smart", bad_name="smartboteur")
+    #
+    # df = pd.read_csv("../data/behaviors/items_collected/24smart_t25_1smartboteur_weighted.txt", header=None)
+    # items_collected_violin_plot(df, axs[5], 24, 1, xlabel="24 smart vs 1 smartboteur weighted", good_name="smart",
+    #                             bad_name="smartboteur")
+    # plt.show ()
+
+    fig, axs = plt.subplots(1, 4, sharey=True)
+    fig.set_size_inches(12, 6)
     fig.suptitle("Swarm Performance")
     fig.supylabel("Number of Items Collected")
     fig.supxlabel("Experiment")
-    df = pd.read_csv("../data/behaviors/items_collected/25honest.txt", header=None)
-    items_collected_violin_plot(df, axs[0], 25, 0, xlabel="25 naive")
-    df = pd.read_csv("../data/behaviors/items_collected/24honest_1saboteur.txt", header=None)
-    items_collected_violin_plot(df, axs[1], 24, 1, xlabel="24 naive vs 1 saboteur")
-    df = pd.read_csv("../data/behaviors/items_collected/25smart_t25.txt", header=None)
-    items_collected_violin_plot(df, axs[2], 25, 0, xlabel="25 smart", good_name="smart", bad_name="smartboteur")
-    df = pd.read_csv("../data/saboteur_comp/items_collected/24smart_t25_1smartboteur_SoR_50.txt", header=None)
-    items_collected_violin_plot(df, axs[3], 24, 1, xlabel="24 smart vs 1 smartboteur", good_name="smart", bad_name="smartboteur")
-    df = pd.read_csv("../data/behaviors/items_collected/25smart_t25_0smartboteur_weighted.txt", header=None)
-    items_collected_violin_plot(df, axs[4], 25, 0, xlabel="25 smart weighted", good_name="smart", bad_name="smartboteur")
-    df = pd.read_csv("../data/behaviors/items_collected/24smart_t25_1smartboteur_weighted.txt", header=None)
-    items_collected_violin_plot(df, axs[5], 24, 1, xlabel="24 smart vs 1 smartboteur weighted", good_name="smart",
-                                bad_name="smartboteur")
+    df = pd.read_csv("../data/correlation/items_collected/25naive_0saboteur_nostake.txt", header=None)
+    items_collected_boxplot(df, axs[0], 25, 0, xlabel="25 naive", title="A")
+
+    df = pd.read_csv("../data/correlation/items_collected/24naive_1saboteur_nostake.txt", header=None)
+    items_collected_boxplot(df, axs[1], 24, 1, xlabel="24 naive vs 1 saboteur", title="B")
+
+    df = pd.read_csv("../data/correlation/items_collected/25smart_t25_0smartboteur_nostake.txt", header=None)
+    items_collected_boxplot(df, axs[2], 25, 0, xlabel="25 sceptical", good_name="sceptical", bad_name="scaboteur", title="C")
+
+    df = pd.read_csv("../data/correlation/items_collected/24smart_t25_1smartboteur_nostake.txt", header=None)
+    items_collected_boxplot(df, axs[3], 24, 1, xlabel="24 sceptical vs 1 scaboteur", good_name="sceptical",
+                                bad_name="scaboteur", title="D")
+
+    # df = pd.read_csv("../data/behaviors/items_collected/25smart_t25_0smartboteur_weighted.txt", header=None)
+    # items_collected_boxplot(df, axs[4], 25, 0, xlabel="25 smart weighted", good_name="smart",
+    #                             bad_name="scaboteur")
+    #
+    # df = pd.read_csv("../data/behaviors/items_collected/24smart_t25_1smartboteur_weighted.txt", header=None)
+    # items_collected_boxplot(df, axs[5], 24, 1, xlabel="24 smart vs 1 smartboteur weighted", good_name="smart",
+    #                             bad_name="smartboteur")
     plt.show()
 
-    filenames = ["24smart_t25_1smartboteur_windowdev_50_fixedmarket",
-                 "22smart_t25_3smartboteur_windowdev_50_fixedmarket",
-                 "20smart_t25_5smartboteur_windowdev_50_fixedmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp",
-                      title="Wealth Repartition - Window Filter")
+    filenames = ["24smart_t25_1smartboteur_nostake",
+                 "22smart_t25_3smartboteur_nostake",
+                 "20smart_t25_5smartboteur_nostake"]
+    # make_violin_plots(filenames, by=3, comparison_on="correlation", title="Wealth Repartition - Outlier Penalisation")
+    make_boxplots(filenames, by=3, comparison_on="correlation",
+                      title="Wealth Repartition - Outlier Penalisation")
 
-    filenames = ["24smart_t25_1smartboteur_vouchwindowdev_50_fixedmarket",
-                 "22smart_t25_3smartboteur_vouchwindowdev_50_fixedmarket",
-                 "20smart_t25_5smartboteur_vouchwindowdev_50_fixedmarket"]
-    make_violin_plots(filenames, by=3, comparison_on="saboteur_comp", metric="rewards",
-                      title="Wealth Repartition - Window Filter with Vouching")
+    filenames = ["24smart_t25_1smartboteur_windowvouch",
+                 "22smart_t25_3smartboteur_windowvouch",
+                 "20smart_t25_5smartboteur_windowvouch"]
+    # make_violin_plots(filenames, by=3, comparison_on="correlation", metric="rewards", title="Wealth Repartition - Outlier Penalisation with Staking")
+    make_boxplots(filenames, by=3, comparison_on="correlation", metric="rewards",
+                      title="Wealth Repartition - Outlier Penalisation with Staking")
 
 
+def to_reward_wealth_proportion(df):
+    totals = df.apply(np.sum, axis=1)
+    df_rel = df.div(totals, axis=0) * 100
+    return df_rel
+
+
+def to_long(df, N_HONEST, x_name, y_name, hue_name, honest_name, saboteur_name):
+    df.columns = [str(i + 1) for i in range(25)]
+    df[x_name] = df.index
+    df = pd.melt(df, id_vars=[x_name], value_vars=[str(i + 1) for i in range(25)], var_name="id", value_name=y_name)
+    df[hue_name] = honest_name
+    df.loc[df["id"].astype(int) > N_HONEST, hue_name] = saboteur_name
+    return df
+
+
+def reward_evolution():
+    N_RUNS = 32
+    N_HONEST = 20
+    N_SABOTEURS = 25-N_HONEST
+    x_name = "time"
+    y_name = "Individual wealth ($)"
+    hue_name = "behavior"
+    honest_name = "sceptical"
+    saboteur_name = "scaboteur"
+    dfs = []
+    for i in range(N_RUNS):
+        df = pd.read_csv(f"../data/correlation/reward_evolution/{N_HONEST}smart_t25_{N_SABOTEURS}smartboteur_doublestake/{i}.txt", header=None, index_col=0)
+        # df = to_reward_wealth_proportion(df)
+        df = df.iloc[::10, :]
+        df = to_long(df, N_HONEST, x_name, y_name, hue_name, honest_name, saboteur_name)
+        dfs.append(df)
+    df = pd.concat(dfs, ignore_index=True)
+    print(df)
+    plt.suptitle("A", fontweight="bold")
+    plt.title(f"Outlier penalisation with staking - {N_HONEST} {honest_name} vs {N_SABOTEURS} {saboteur_name}")
+    sns.lineplot(data=df, x=x_name, y=y_name, hue=hue_name, palette=palette)
+    plt.show()
+
+
+def correlation_plot(filename, directory, suptitle=None):
+    n_honest = int(re.search('[0-9]+', filename).group())
+    n_bad = 25 - n_honest
+    honest_name = re.search('[a-z]+', filename.split("_")[0]).group()
+    bad_name = re.search('[a-z]+', filename.split("_")[2]).group()
+    rewards = pd.read_csv(f"{directory}rewards/{filename}", header=None)
+    items_collected = pd.read_csv(f"{directory}items_collected/{filename}", header=None)
+    # rewards = rewards - 0.5*items_collected
+    wealth = to_reward_wealth_proportion(rewards)
+    drifts = pd.read_csv(f"{directory}drifts/{filename}", header=None)
+    drifts = drifts.applymap(abs)
+    y = wealth.iloc[:, :n_honest].to_numpy().flatten()
+    x = drifts.iloc[:, :n_honest].to_numpy().flatten()
+    sns.regplot(x=x, y=y, scatter=True, truncate=True,
+                line_kws={"color":"darkblue"}, scatter_kws={"alpha":0.2, "linewidth":0})
+    plt.title(f"{n_honest} sceptical vs {n_bad} scaboteurs with staking")  #- pearson={round(np.corrcoef(x, y)[0, 1], 2)}
+    plt.xlabel("drift")
+    plt.ylabel("Proportion of total wealth(%)")
+    if suptitle:
+        plt.suptitle(suptitle, fontweight="bold")
+    plt.show()
+
+filenames = [
+    "25smart_t25_0smartboteur_windowvouch.txt",
+    "20smart_t25_5smartboteur_windowvouch.txt",
+    # "22smart_t25_3smartboteur_windowvouch.txt",
+    # "24smart_t25_1smartboteur_windowvouch.txt",
+]
+def correlation_plots():
+    for i, filename in enumerate(filenames):
+        correlation_plot(filename, "../data/correlation/", chr(i+65))
 
 if __name__ == '__main__':
     # supply_demand_simulation()
@@ -724,4 +920,6 @@ if __name__ == '__main__':
     # test_timedev()
     # thesis_plots()
     # compare_strats()
-    paper_plots()
+    # paper_plots()
+    # reward_evolution()
+    correlation_plots()

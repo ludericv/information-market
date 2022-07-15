@@ -35,6 +35,7 @@ class Behavior(ABC):
     def get_dr(self):
         return self.dr
 
+    @abstractmethod
     def get_target(self, location):
         return self.navigation_table.get_target(location)
 
