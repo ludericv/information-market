@@ -11,7 +11,8 @@ from model.communication import CommunicationSession
 from model.navigation import Location
 import numpy as np
 
-from helpers.utils import get_orientation_from_vector, rotate, InsufficientFundsException, CommunicationState, norm
+from helpers.utils import get_orientation_from_vector, rotate, InsufficientFundsException, CommunicationState, norm, \
+    NoLocationSensedException
 
 
 class AgentAPI:
@@ -22,7 +23,7 @@ class AgentAPI:
         self.get_id = agent.get_id
         self.carries_food = agent.carries_food
         self.radius = agent.radius
-        self.get_vector = agent.get_vector
+        self.get_relative_position_to_location = agent.get_relative_position_to_location
         self.get_levi_turn_angle = agent.get_levi_turn_angle
 
 
@@ -31,7 +32,7 @@ class Agent:
 
     def __init__(self, robot_id, x, y, speed, radius,
                  noise_mu, noise_musd, noise_sd, fuel_cost,
-                 initial_reward, info_cost, behavior, environment, communication_cooldown,
+                 info_cost, behavior, environment, communication_cooldown,
                  communication_stop_time):
 
         self.id = robot_id
@@ -68,13 +69,13 @@ class Agent:
     def __str__(self):
         return f"ID: {self.id}\n" \
                f"state: {self.comm_state.name}\n" \
-               f"expected food at: ({round(self.pos[0] + rotate(self.behavior.navigation_table.get_location_vector(Location.FOOD), self.orientation)[0])}, {round(self.pos[1] + rotate(self.behavior.navigation_table.get_location_vector(Location.FOOD), self.orientation)[1])}), \n" \
-               f"   known: {self.behavior.navigation_table.is_location_known(Location.FOOD)}\n" \
-               f"expected nest at: ({round(self.pos[0] + rotate(self.behavior.navigation_table.get_location_vector(Location.NEST), self.orientation)[0])}, {round(self.pos[1] + rotate(self.behavior.navigation_table.get_location_vector(Location.NEST), self.orientation)[1])}), \n" \
-               f"   known: {self.behavior.navigation_table.is_location_known(Location.NEST)}\n" \
+               f"expected food at: ({round(self.pos[0] + rotate(self.behavior.navigation_table.get_relative_position_for_location(Location.FOOD), self.orientation)[0])}, {round(self.pos[1] + rotate(self.behavior.navigation_table.get_relative_position_for_location(Location.FOOD), self.orientation)[1])}), \n" \
+               f"   known: {self.behavior.navigation_table.is_information_valid_for_location(Location.FOOD)}\n" \
+               f"expected nest at: ({round(self.pos[0] + rotate(self.behavior.navigation_table.get_relative_position_for_location(Location.NEST), self.orientation)[0])}, {round(self.pos[1] + rotate(self.behavior.navigation_table.get_relative_position_for_location(Location.NEST), self.orientation)[1])}), \n" \
+               f"   known: {self.behavior.navigation_table.is_information_valid_for_location(Location.NEST)}\n" \
                f"info age:\n" \
-               f"   -food={round(self.behavior.navigation_table.get_target(Location.FOOD).age, 3)}\n" \
-               f"   -nest={round(self.behavior.navigation_table.get_target(Location.NEST).age, 3)}\n" \
+               f"   -food={round(self.behavior.navigation_table.get_information_entry(Location.FOOD).age, 3)}\n" \
+               f"   -nest={round(self.behavior.navigation_table.get_information_entry(Location.NEST).age, 3)}\n" \
                f"carries food: {self._carries_food}\n" \
                f"drift: {round(self.noise_mu, 5)}\n" \
                f"reward: {round(self.environment.payment_database.get_reward(self.id), 3)}$\n" \
@@ -98,14 +99,13 @@ class Agent:
         self.previous_nav = copy.deepcopy(self.behavior.navigation_table)
         if self.comm_state == CommunicationState.OPEN:
             session = CommunicationSession(self, neighbors, self.info_cost)
-            self.behavior.communicate(session)
+            self.behavior.buy_info(session)
         self.new_nav = self.behavior.navigation_table
         self.behavior.navigation_table = self.previous_nav
 
     def step(self):
         self.behavior.navigation_table = self.new_nav
         self.sensors = self.environment.get_sensors(self)
-        # self.check_food(sensors)
         if not self.comm_state == CommunicationState.PROCESSING:
             self.behavior.step(AgentAPI(self))
             try:
@@ -116,42 +116,18 @@ class Agent:
         self.update_communication_state()
         self.update_trace()
 
-    def get_target_from_behavior(self, location):
-        return self.behavior.get_target(location)
-
-    def get_target(self, location):
-        return self.behavior.navigation_table.get_target(location)
-
-    def get_nav_location_age(self, location):
-        return self.behavior.navigation_table.get_age(location)
-
-    def get_location_vector(self, location):
-        return self.behavior.navigation_table.get_location_vector(location)
-
-    def knows_location(self, location):
-        return self.behavior.navigation_table.is_location_known(location)
+    def get_info_from_behavior(self, location):
+        return self.behavior.sell_info(location)
 
     def update_trace(self):
         self.trace.appendleft(self.pos[1])
         self.trace.appendleft(self.pos[0])
 
-    def is_stationary(self):
-        trace_length = len(self.trace) // 2
-        tolerance = 3
-        if trace_length < 4 * tolerance:  # If robot hasn't done 2*tolerance steps yet, consider it is moving
-            return False
-        trace_x = [self.trace[2 * i] for i in range(min(trace_length, 4 * tolerance))]
-        trace_y = [self.trace[2 * i + 1] for i in range(min(trace_length, 4 * tolerance))]
-        max_x_gap = max(trace_x) - min(trace_x)
-        max_y_gap = max(trace_y) - min(trace_y)
-
-        return max_x_gap < tolerance * self._speed and max_y_gap < tolerance * self._speed
-
-    def get_vector(self, location: Location):
+    def get_relative_position_to_location(self, location: Location):
         if self.environment.get_sensors(self)[location]:
             return rotate(self.environment.get_location(location, self) - self.pos, -self.orientation)
         else:
-            raise Exception(f"Robot does not sense {location}")
+            raise NoLocationSensedException()
 
     def move(self):
         wanted_movement = rotate(self.dr, self.orientation)
@@ -191,7 +167,7 @@ class Agent:
                                     fill=self.behavior.color,
                                     outline=self.colors[self.behavior.state],
                                     width=3)
-        # self.draw_comm_radius(canvas)
+        self.draw_comm_radius(canvas)
         # self.draw_goal_vector(canvas)
         self.draw_orientation(canvas)
         # self.draw_trace(canvas)
@@ -210,20 +186,20 @@ class Agent:
         arrow = canvas.create_line(self.pos[0],
                                    self.pos[1],
                                    self.pos[0] + rotate(
-                                       self.behavior.navigation_table.get_location_vector(Location.FOOD),
+                                       self.behavior.navigation_table.get_relative_position_for_location(Location.FOOD),
                                        self.orientation)[0],
                                    self.pos[1] + rotate(
-                                       self.behavior.navigation_table.get_location_vector(Location.FOOD),
+                                       self.behavior.navigation_table.get_relative_position_for_location(Location.FOOD),
                                        self.orientation)[1],
                                    arrow=LAST,
                                    fill="darkgreen")
         arrow = canvas.create_line(self.pos[0],
                                    self.pos[1],
                                    self.pos[0] + rotate(
-                                       self.behavior.navigation_table.get_location_vector(Location.NEST),
+                                       self.behavior.navigation_table.get_relative_position_for_location(Location.NEST),
                                        self.orientation)[0],
                                    self.pos[1] + rotate(
-                                       self.behavior.navigation_table.get_location_vector(Location.NEST),
+                                       self.behavior.navigation_table.get_relative_position_for_location(Location.NEST),
                                        self.orientation)[1],
                                    arrow=LAST,
                                    fill="darkorange")

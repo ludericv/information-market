@@ -36,6 +36,10 @@ class NoInformationSoldException(Exception):
     pass
 
 
+class NoLocationSensedException(Exception):
+    pass
+
+
 class CommunicationState(Enum):
     OPEN = 1
     PROCESSING = 2

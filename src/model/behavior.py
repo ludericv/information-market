@@ -8,7 +8,8 @@ import numpy as np
 from model.communication import CommunicationSession
 from model.navigation import Location, NavigationTable
 from model.strategy import WeightedAverageAgeStrategy
-from helpers.utils import get_orientation_from_vector, norm, InsufficientFundsException, NoInformationSoldException
+from helpers.utils import get_orientation_from_vector, norm, InsufficientFundsException, NoInformationSoldException, \
+    NoLocationSensedException
 
 
 class State(Enum):
@@ -20,52 +21,47 @@ class State(Enum):
 class Behavior(ABC):
 
     def __init__(self):
-        self.dr = np.array([0, 0]).astype('float64')
-        self.navigation_table = NavigationTable(quality=1)
         self.color = "blue"
+        self.navigation_table = NavigationTable()
 
     @abstractmethod
-    def communicate(self, neighbors):
+    def buy_info(self, neighbors):
         pass
 
     @abstractmethod
     def step(self, api):
         """Simulates 1 step of behavior (= 1 movement)"""
 
-    def get_dr(self):
-        return self.dr
-
     @abstractmethod
-    def get_target(self, location):
-        return self.navigation_table.get_target(location)
+    def sell_info(self, location):
+        pass
 
     def debug_text(self):
         return ""
 
 
 class HonestBehavior(Behavior):
-
     def __init__(self):
         super().__init__()
         self.state = State.EXPLORING
         self.strategy = WeightedAverageAgeStrategy()
+        self.dr = np.array([0, 0]).astype('float64')
         self.id = -1
 
-    def communicate(self, session: CommunicationSession):
+    def buy_info(self, session: CommunicationSession):
         for location in Location:
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age(location):
+                if data["age"] < self.navigation_table.get_age_for_location(location):
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
-                        new_target = self.strategy.combine(self.navigation_table.get_target(location),
+                        new_target = self.strategy.combine(self.navigation_table.get_information_entry(location),
                                                            other_target,
                                                            session.get_distance_from(bot_id))
-                        self.navigation_table.replace_target(location, new_target)
+                        self.navigation_table.replace_information_entry(location, new_target)
                         break
                     except InsufficientFundsException:
-                        # print(f"No money for robot {self.id}")
                         pass
                     except NoInformationSoldException:
                         pass
@@ -76,64 +72,66 @@ class HonestBehavior(Behavior):
         sensors = api.get_sensors()
         self.update_behavior(sensors, api)
         self.update_movement_based_on_state(api)
-        self.check_movement_with_sensors(sensors, api)
-        self.update_nav_table_based_on_dr(api)
+        self.check_movement_with_sensors(sensors)
+        self.update_nav_table_based_on_dr()
+
+    def sell_info(self, location):
+        return self.navigation_table.get_information_entry(location)
 
     def update_behavior(self, sensors, api):
         for location in Location:
             if sensors[location]:
                 try:
-                    self.navigation_table.set_location_vector(location, api.get_vector(location))
-                    self.navigation_table.set_location_known(location, True)
-                    self.navigation_table.set_location_age(location, 0)
-                    self.navigation_table.reset_quality(location, 1)
-                except:
+                    self.navigation_table.set_relative_position_for_location(location, api.get_relative_position_to_location(location))
+                    self.navigation_table.set_information_valid_for_location(location, True)
+                    self.navigation_table.set_age_for_location(location, 0)
+                except NoLocationSensedException:
                     print(f"Sensors do not sense {location}")
 
         if self.state == State.EXPLORING:
-            if self.navigation_table.is_location_known(Location.FOOD) and not api.carries_food():
+            if self.navigation_table.is_information_valid_for_location(Location.FOOD) and not api.carries_food():
                 self.state = State.SEEKING_FOOD
-            if self.navigation_table.is_location_known(Location.NEST) and api.carries_food():
+            if self.navigation_table.is_information_valid_for_location(Location.NEST) and api.carries_food():
                 self.state = State.SEEKING_NEST
 
         elif self.state == State.SEEKING_FOOD:
             if api.carries_food():
-                if self.navigation_table.is_location_known(Location.NEST):
+                if self.navigation_table.is_information_valid_for_location(Location.NEST):
                     self.state = State.SEEKING_NEST
                 else:
                     self.state = State.EXPLORING
-            elif norm(self.navigation_table.get_location_vector(Location.FOOD)) < api.radius():
-                self.navigation_table.set_location_known(Location.FOOD, False)
+            elif norm(self.navigation_table.get_relative_position_for_location(Location.FOOD)) < api.radius():
+                self.navigation_table.set_information_valid_for_location(Location.FOOD, False)
                 self.state = State.EXPLORING
 
         elif self.state == State.SEEKING_NEST:
             if not api.carries_food():
-                if self.navigation_table.is_location_known(Location.FOOD):
+                if self.navigation_table.is_information_valid_for_location(Location.FOOD):
                     self.state = State.SEEKING_FOOD
                 else:
                     self.state = State.EXPLORING
-            elif norm(self.navigation_table.get_location_vector(Location.NEST)) < api.radius():
-                self.navigation_table.set_location_known(Location.NEST, False)
+            elif norm(self.navigation_table.get_relative_position_for_location(Location.NEST)) < api.radius():
+                self.navigation_table.set_information_valid_for_location(Location.NEST, False)
                 self.state = State.EXPLORING
 
         if sensors["FRONT"]:
             if self.state == State.SEEKING_NEST:
-                self.navigation_table.set_location_known(Location.NEST, False)
+                self.navigation_table.set_information_valid_for_location(Location.NEST, False)
                 self.state = State.EXPLORING
             elif self.state == State.SEEKING_FOOD:
-                self.navigation_table.set_location_known(Location.FOOD, False)
+                self.navigation_table.set_information_valid_for_location(Location.FOOD, False)
                 self.state = State.EXPLORING
 
     def update_movement_based_on_state(self, api):
         if self.state == State.SEEKING_FOOD:
-            self.dr = self.navigation_table.get_location_vector(Location.FOOD)
-            food_norm = norm(self.navigation_table.get_location_vector(Location.FOOD))
+            self.dr = self.navigation_table.get_relative_position_for_location(Location.FOOD)
+            food_norm = norm(self.navigation_table.get_relative_position_for_location(Location.FOOD))
             if food_norm > api.speed():
                 self.dr = self.dr * api.speed() / food_norm
 
         elif self.state == State.SEEKING_NEST:
-            self.dr = self.navigation_table.get_location_vector(Location.NEST)
-            nest_norm = norm(self.navigation_table.get_location_vector(Location.NEST))
+            self.dr = self.navigation_table.get_relative_position_for_location(Location.NEST)
+            nest_norm = norm(self.navigation_table.get_relative_position_for_location(Location.NEST))
             if nest_norm > api.speed():
                 self.dr = self.dr * api.speed() / nest_norm
 
@@ -143,13 +141,13 @@ class HonestBehavior(Behavior):
 
         api.set_desired_movement(self.dr)
 
-    def check_movement_with_sensors(self, sensors, api):
+    def check_movement_with_sensors(self, sensors):
         if (sensors["FRONT"] and self.dr[0] >= 0) or (sensors["BACK"] and self.dr[0] <= 0):
             self.dr[0] = -self.dr[0]
         if (sensors["RIGHT"] and self.dr[1] <= 0) or (sensors["LEFT"] and self.dr[1] >= 0):
             self.dr[1] = -self.dr[1]
 
-    def update_nav_table_based_on_dr(self, api):
+    def update_nav_table_based_on_dr(self):
         self.navigation_table.update_from_movement(self.dr)
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
 
@@ -161,18 +159,18 @@ class CarefulBehavior(HonestBehavior):
         self.security_level = security_level
         self.pending_information = {location: {} for location in Location}
 
-    def communicate(self, session: CommunicationSession):
+    def buy_info(self, session: CommunicationSession):
         for location in Location:
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[
+                if data["age"] < self.navigation_table.get_age_for_location(location) and bot_id not in self.pending_information[
                     location]:
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))
-                        if not self.navigation_table.is_location_known(location):
-                            self.navigation_table.replace_target(location, other_target)
+                        if not self.navigation_table.is_information_valid_for_location(location):
+                            self.navigation_table.replace_information_entry(location, other_target)
                         else:
                             self.pending_information[location][bot_id] = other_target
                             if len(self.pending_information[location]) >= self.security_level:
@@ -187,7 +185,7 @@ class CarefulBehavior(HonestBehavior):
         mean_distance = np.mean(distances, axis=0)
         best_target = min(self.pending_information[location].values(),
                           key=lambda t: norm(t.get_distance() - mean_distance))
-        self.navigation_table.replace_target(location, best_target)
+        self.navigation_table.replace_information_entry(location, best_target)
         self.pending_information[location].clear()
 
     def step(self, api):
@@ -212,25 +210,25 @@ class SmartBehavior(HonestBehavior):
         self.pending_information = {location: {} for location in Location}
         self.threshold = threshold
 
-    def communicate(self, session: CommunicationSession):
+    def buy_info(self, session: CommunicationSession):
         for location in Location:
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age(location) and bot_id not in self.pending_information[
+                if data["age"] < self.navigation_table.get_age_for_location(location) and bot_id not in self.pending_information[
                     location]:
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         other_target.set_distance(other_target.get_distance() + session.get_distance_from(
                             bot_id))
 
-                        if not self.navigation_table.is_location_known(location) or \
-                                self.difference_score(self.navigation_table.get_location_vector(location),
+                        if not self.navigation_table.is_information_valid_for_location(location) or \
+                                self.difference_score(self.navigation_table.get_relative_position_for_location(location),
                                                       other_target.get_distance()) < self.threshold:
-                            new_target = self.strategy.combine(self.navigation_table.get_target(location),
+                            new_target = self.strategy.combine(self.navigation_table.get_information_entry(location),
                                                                other_target,
                                                                np.array([0, 0]))
-                            self.navigation_table.replace_target(location, new_target)
+                            self.navigation_table.replace_information_entry(location, new_target)
                             self.pending_information[location].clear()
                         else:
                             for target in self.pending_information[location].values():
@@ -239,7 +237,7 @@ class SmartBehavior(HonestBehavior):
                                     new_target = self.strategy.combine(target,
                                                                        other_target,
                                                                        np.array([0, 0]))
-                                    self.navigation_table.replace_target(location, new_target)
+                                    self.navigation_table.replace_information_entry(location, new_target)
                                     self.pending_information[location].clear()
                                     break
                             else:
@@ -271,8 +269,8 @@ class SaboteurBehavior(HonestBehavior):
         super().__init__()
         self.color = "red"
 
-    def get_target(self, location):
-        t = copy.deepcopy(self.navigation_table.get_target(location))
+    def sell_info(self, location):
+        t = copy.deepcopy(self.navigation_table.get_information_entry(location))
         t.rotate(90)
         return t
 
@@ -282,9 +280,9 @@ class GreedyBehavior(HonestBehavior):
         super().__init__()
         self.color = "green"
 
-    def get_target(self, location):
-        t = copy.deepcopy(self.navigation_table.get_target(location))
-        t.age = 1  # t.age - 10 if t.age > 10 else 1
+    def sell_info(self, location):
+        t = copy.deepcopy(self.navigation_table.get_information_entry(location))
+        t.age = 1
         return t
 
 
@@ -293,7 +291,7 @@ class FreeRiderBehavior(SmartBehavior):
         super().__init__()
         self.color = "pink"
 
-    def get_target(self, location):
+    def sell_info(self, location):
         return None
 
 
@@ -302,8 +300,8 @@ class SmartboteurBehavior(SmartBehavior):
         super().__init__()
         self.color = "red"
 
-    def get_target(self, location):
-        t = copy.deepcopy(self.navigation_table.get_target(location))
+    def sell_info(self, location):
+        t = copy.deepcopy(self.navigation_table.get_information_entry(location))
         t.rotate(90)
         return t
 
@@ -313,7 +311,7 @@ class SmartGreedyBehavior(SmartBehavior):
         super().__init__()
         self.color = "green"
 
-    def get_target(self, location):
-        t = copy.deepcopy(self.navigation_table.get_target(location))
+    def sell_info(self, location):
+        t = copy.deepcopy(self.navigation_table.get_information_entry(location))
         t.age = 1
         return t
