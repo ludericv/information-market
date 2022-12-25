@@ -9,16 +9,14 @@ class Location(Enum):
 
 
 class Target:
-    def __init__(self, location, quality):
+    def __init__(self, location):
         self.location = location
         self.relative_distance = np.array([0, 0]).astype('float64')
         self.age = 0
-        self.quality = quality
-        self.decaying_quality = 1
-        self.known = False
+        self.valid = False
 
-    def is_known(self):
-        return self.known
+    def is_valid(self):
+        return self.valid
 
     def get_age(self):
         return self.age
@@ -26,11 +24,8 @@ class Target:
     def set_age(self, age):
         self.age = age
 
-    def get_quality(self):
-        return self.decaying_quality
-
-    def set_known(self, known):
-        self.known = known
+    def set_valid(self, valid):
+        self.valid = valid
 
     def get_distance(self):
         return self.relative_distance
@@ -46,59 +41,41 @@ class Target:
         rot_mat = rotation_matrix(angle)
         self.relative_distance = rot_mat.dot(self.relative_distance)
 
-    def decay_quality(self, decay_rate):
-        # self.decaying_quality *= decay_rate
-        res = self.decaying_quality - decay_rate
-        self.decaying_quality = res if res > 0 else 0
-
 
 class NavigationTable:
-    def __init__(self, quality):
-        self.targets = dict()
+    def __init__(self):
+        self.entries = dict()
         for location in Location:
-            self.targets[location] = Target(location, quality)
+            self.entries[location] = Target(location)
 
-    def is_location_known(self, location):
-        return self.targets[location].is_known()
+    def is_information_valid_for_location(self, location):
+        return self.entries[location].is_valid()
 
-    def set_location_known(self, location, known):
-        self.targets[location].known = known
+    def set_information_valid_for_location(self, location, known):
+        self.entries[location].valid = known
 
-    def get_location_vector(self, location):
-        return self.targets[location].get_distance()
+    def get_relative_position_for_location(self, location):
+        return self.entries[location].get_distance()
 
-    def set_location_vector(self, location, distance):
-        self.targets[location].set_distance(distance)
+    def set_relative_position_for_location(self, location, distance):
+        self.entries[location].set_distance(distance)
 
     def update_from_movement(self, dr):
-        for location in self.targets:
-            self.targets[location].update(dr)
+        for location in self.entries:
+            self.entries[location].update(dr)
 
     def rotate_from_angle(self, angle):
-        for location in self.targets:
-            self.targets[location].rotate(angle)
+        for location in self.entries:
+            self.entries[location].rotate(angle)
 
-    def get_age(self, location):
-        return self.targets[location].age
+    def get_age_for_location(self, location):
+        return self.entries[location].age
 
-    def get_quality(self, location):
-        return self.targets[location].decaying_quality
+    def set_age_for_location(self, location, age):
+        self.entries[location].age = age
 
-    def set_location_age(self, location, age):
-        self.targets[location].age = age
+    def get_information_entry(self, location):
+        return self.entries[location]
 
-    def get_target(self, location):
-        return self.targets[location]
-
-    def replace_target(self, location, new_target):
-        self.targets[location] = new_target
-
-    def reset_quality(self, location, quality):
-        self.targets[location].quality = quality
-        self.targets[location].decaying_quality = 1
-
-    def decay_qualities(self, decay_rate):
-        for location in self.targets:
-            self.targets[location].decay_quality(decay_rate)
-
-
+    def replace_information_entry(self, location, new_target):
+        self.entries[location] = new_target

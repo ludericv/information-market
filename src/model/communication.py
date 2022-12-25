@@ -13,14 +13,13 @@ class CommunicationSession:
 
     def get_metadata(self, location):
         metadata = {n_id: {
-            "age": n.get_target_from_behavior(location).get_age(),
-            "known": n.get_target_from_behavior(location).is_known()
+            "age": n.get_info_from_behavior(location).get_age(),
         } for n_id, n in self._neighbors.items() if
-            n.get_target_from_behavior(location) is not None}
+            n.get_info_from_behavior(location) is not None and n.get_info_from_behavior(location).is_valid()}
         return metadata
 
     def make_transaction(self, neighbor_id, location) -> Target:
-        target = copy.deepcopy(self._neighbors[neighbor_id].get_target_from_behavior(location))
+        target = copy.deepcopy(self._neighbors[neighbor_id].get_info_from_behavior(location))
         if target is None:
             raise NoInformationSoldException
         target.rotate(self._neighbors[neighbor_id].orientation - self._client.orientation)

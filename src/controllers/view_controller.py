@@ -23,18 +23,14 @@ class ViewController:
 
         self.debug_canvas = tk.Canvas(self.root, width=200, height=height/2, highlightthickness=0)
         self.debug_canvas.configure(bg="white smoke")
-        self.debug_canvas.pack(fill="both", expand=False, side="bottom")
+        self.debug_canvas.pack(fill="both", expand=False, side="right")
         self.selected_robot = None
         debug_title = self.debug_canvas.create_text(5, 5, fill="gray30", text=f"Robot", font="Arial 13 bold", anchor="nw")
         self.debug_text = self.debug_canvas.create_text(5, 25, fill="gray30", text=f"No robot selected", anchor="nw", font="Arial 10")
 
-        self.stats_canvas = tk.Canvas(self.root, width=200, height=height/2, highlightthickness=0)
-        self.stats_canvas.configure(bg="white smoke")
-        self.stats_canvas.pack(fill="both", expand=False, side="top")
-
         self.animation_ended = False
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.paused = True
+        self.paused = False
         self.can_render = False
         self.create_bindings()
 
@@ -69,7 +65,7 @@ class ViewController:
 
     def refresh(self):
         self.display_selected_info()
-        self.update_stats_canvas()
+        # self.update_stats_canvas()
         self.canvas.delete("all")
 
         self.controller.environment.draw(self.canvas)
@@ -103,10 +99,3 @@ class ViewController:
             self.debug_text = self.debug_canvas.create_text(5, 25, fill="gray45", text=self.selected_robot, anchor="nw", font="Arial 10")
         else:
             self.debug_text = self.debug_canvas.create_text(5, 25, fill="gray45", text=f"No robot selected", anchor="nw", font="Arial 10")
-
-    def update_stats_canvas(self):
-        self.stats_canvas.delete("all")
-        self.stats_canvas.create_text(5, 5, fill="gray30", text=f"System", font="Arial 13 bold", anchor="nw")
-        self.stats_canvas.create_text(5, 25, fill="gray45", text=f"Supply:", anchor="nw", font="Arial 10")
-        self.controller.environment.draw_market_stats(self.stats_canvas)
-

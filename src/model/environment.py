@@ -77,7 +77,6 @@ class Environment:
             self.check_locations(robot)
             robot.step()
 
-        self.payment_database.step()
         self.market.step()
 
     def create_robots(self):
@@ -90,7 +89,6 @@ class Environment:
                           noise_mu=self.noise_mu,
                           noise_musd=self.noise_musd,
                           noise_sd=self.noise_sd,
-                          initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
                           behavior=ScepticalBehavior(),  # Line that changes
@@ -107,7 +105,6 @@ class Environment:
                           noise_mu=self.noise_mu,
                           noise_musd=self.noise_musd,
                           noise_sd=self.noise_sd,
-                          initial_reward=self.initial_reward,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
                           behavior=ScaboteurBehavior(rotation_angle=90),  # Line that changes
