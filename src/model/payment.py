@@ -201,7 +201,7 @@ class NumpyWindowTransactionPaymentSystem(PaymentSystem):
         return final_mapping
 
     def record_transaction(self, transaction: Transaction, database):
-        vouch_amount = 0 / 25
+        vouch_amount = 1 / 25
         database.apply_cost(transaction.seller_id, vouch_amount)
         self.pot_amount += vouch_amount
         self.transactions.add(transaction)

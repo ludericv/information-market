@@ -849,13 +849,13 @@ def reward_evolution():
     N_HONEST = 20
     N_SABOTEURS = 25-N_HONEST
     x_name = "time"
-    y_name = "Individual wealth ($)"
+    y_name = "Individual weatlh ($)"
     hue_name = "behavior"
     honest_name = "sceptical"
     saboteur_name = "scaboteur"
     dfs = []
     for i in range(N_RUNS):
-        df = pd.read_csv(f"../data/correlation/reward_evolution/{N_HONEST}smart_t25_{N_SABOTEURS}smartboteur_doublestake/{i}.txt", header=None, index_col=0)
+        df = pd.read_csv(f"../data/correlation/reward_evolution/{N_HONEST}smart_t25_{N_SABOTEURS}smartboteur_nostake/{i}.txt", header=None, index_col=0)
         # df = to_reward_wealth_proportion(df)
         df = df.iloc[::10, :]
         df = to_long(df, N_HONEST, x_name, y_name, hue_name, honest_name, saboteur_name)
@@ -863,7 +863,7 @@ def reward_evolution():
     df = pd.concat(dfs, ignore_index=True)
     print(df)
     plt.suptitle("A", fontweight="bold")
-    plt.title(f"Outlier penalisation with staking - {N_HONEST} {honest_name} vs {N_SABOTEURS} {saboteur_name}")
+    plt.title(f"Outlier penalisation - {N_HONEST} {honest_name} vs {N_SABOTEURS} {saboteur_name}")
     sns.lineplot(data=df, x=x_name, y=y_name, hue=hue_name, palette=palette)
     plt.show()
 
@@ -921,5 +921,5 @@ if __name__ == '__main__':
     # thesis_plots()
     # compare_strats()
     # paper_plots()
-    # reward_evolution()
-    correlation_plots()
+    reward_evolution()
+    # correlation_plots()

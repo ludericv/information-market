@@ -206,9 +206,9 @@ class CarefulBehavior(HonestBehavior):
                f"{self.pending_information[Location.NEST]}"
 
 
-class SmartBehavior(HonestBehavior):
+class ScepticalBehavior(HonestBehavior):
     def __init__(self, threshold=0.25):
-        super(SmartBehavior, self).__init__()
+        super(ScepticalBehavior, self).__init__()
         self.pending_information = {location: {} for location in Location}
         self.threshold = threshold
 
@@ -267,13 +267,14 @@ class SmartBehavior(HonestBehavior):
 
 
 class SaboteurBehavior(HonestBehavior):
-    def __init__(self):
+    def __init__(self, rotation_angle=90):
         super().__init__()
         self.color = "red"
+        self.rotation_angle = rotation_angle
 
     def get_target(self, location):
         t = copy.deepcopy(self.navigation_table.get_target(location))
-        t.rotate(90)
+        t.rotate(self.rotation_angle)
         return t
 
 
@@ -288,7 +289,7 @@ class GreedyBehavior(HonestBehavior):
         return t
 
 
-class FreeRiderBehavior(SmartBehavior):
+class FreeRiderBehavior(ScepticalBehavior):
     def __init__(self):
         super().__init__()
         self.color = "pink"
@@ -297,18 +298,19 @@ class FreeRiderBehavior(SmartBehavior):
         return None
 
 
-class SmartboteurBehavior(SmartBehavior):
-    def __init__(self):
+class ScaboteurBehavior(ScepticalBehavior):
+    def __init__(self, rotation_angle=90):
         super().__init__()
         self.color = "red"
+        self.rotation_angle = rotation_angle
 
     def get_target(self, location):
         t = copy.deepcopy(self.navigation_table.get_target(location))
-        t.rotate(90)
+        t.rotate(self.rotation_angle)
         return t
 
 
-class SmartGreedyBehavior(SmartBehavior):
+class ScepticalGreedyBehavior(ScepticalBehavior):
     def __init__(self):
         super().__init__()
         self.color = "green"
