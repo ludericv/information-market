@@ -60,7 +60,8 @@ class MainController:
                                        demand=self.config.value_of("DEMAND"),
                                        max_price=self.config.value_of("MAX_PRICE"),
                                        robot_comm_cooldown=self.config.value_of("COMM_COOLDOWN"),
-                                       robot_comm_stop_time=self.config.value_of("COMM_STOPTIME")
+                                       robot_comm_stop_time=self.config.value_of("COMM_STOPTIME"),
+                                       scaboteur_rotation=self.config.value_of("SCABOTEUR_ROTATION")
                                        )
         self.tick = 0
         self.rewards_evolution = ""

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import Counter
 
 import numpy as np
 
@@ -26,6 +27,37 @@ class PaymentSystem(ABC):
     @abstractmethod
     def new_reward(self, reward: float, payment_api, rewarded_id):
         pass
+
+
+class DelayedPaymentPaymentSystem(PaymentSystem):
+
+    def __init__(self):
+        super().__init__()
+        self.transactions = set()
+
+    def new_transaction(self, transaction: Transaction, payment_api):
+        self.transactions.add(transaction)
+
+    def new_reward(self, reward: float, payment_api, rewarded_id):
+        shares_mapping = self.calculate_shares_mapping(reward)
+        for seller_id, share in shares_mapping.items():
+            payment_api.transfer(rewarded_id, seller_id, share)
+
+        self.reset_transactions()
+
+    def calculate_shares_mapping(self, reward_share_to_distribute):
+        if len(self.transactions) == 0:
+            return {}
+        seller_ids = [t.seller_id for t in self.transactions]
+        final_mapping = Counter(seller_ids)
+        total_shares = sum(final_mapping.values())
+        for seller in final_mapping:
+            final_mapping[seller] = final_mapping[seller] * (
+                        reward_share_to_distribute) / total_shares
+        return final_mapping
+
+    def reset_transactions(self):
+        self.transactions.clear()
 
 
 class OutlierPenalisationPaymentSystem(PaymentSystem):
@@ -97,7 +129,8 @@ class PaymentDB:
         self.info_share = info_share
         for robot_id in population_ids:
             self.database[robot_id] = {"reward": initial_reward,
-                                       "payment_system": OutlierPenalisationPaymentSystem()}
+                                       "payment_system": DelayedPaymentPaymentSystem()}
+                                       # "payment_system": OutlierPenalisationPaymentSystem()}
 
     def pay_reward(self, robot_id, reward=1):
         self.database[robot_id]["reward"] += reward
@@ -113,7 +146,7 @@ class PaymentDB:
         self.database[transaction.buyer_id]["payment_system"].new_transaction(transaction, PaymentAPI(self))
 
     def pay_creditors(self, debitor_id, total_reward=1):
-        self.database[debitor_id]["payment_system"].new_reward(self.info_share *total_reward, PaymentAPI(self), debitor_id)
+        self.database[debitor_id]["payment_system"].new_reward(self.info_share * total_reward, PaymentAPI(self), debitor_id)
 
     def get_reward(self, robot_id):
         return self.database[robot_id]["reward"]

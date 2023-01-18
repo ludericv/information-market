@@ -35,13 +35,13 @@ def run(config, i):
     nb_honest = config.value_of("NB_HONEST")
     nb_saboteur = config.value_of("NB_ROBOTS") - nb_honest
     controller.start_simulation()
-    filename = f"{nb_honest}sceptical_t25_{nb_saboteur}scaboteur_stake"
+    filename = f"{nb_honest}sceptical_t25_{nb_saboteur}scaboteur_nopenalisation_rotation_{config.value_of('SCABOTEUR_ROTATION')}"
     with open(f"../data/scaboteur_rotation/rewards/{filename}.txt", "a") as file:
         file.write(controller.get_reward_stats())
     with open(f"../data/scaboteur_rotation/items_collected/{filename}.txt", "a") as file:
         file.write(controller.get_items_collected_stats())
-    with open(f"../data/scaboteur_rotation/drifts/{filename}.txt", "a") as file:
-        file.write(controller.get_drift_stats())
+    # with open(f"../data/scaboteur_rotation/drifts/{filename}.txt", "a") as file:
+    #     file.write(controller.get_drift_stats())
     if config.value_of("RECORD") == 1:
         path = f"../data/scaboteur_rotation/reward_evolution/{filename}"
         pathlib.Path(path).mkdir(parents=True, exist_ok=True)

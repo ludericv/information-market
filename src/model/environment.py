@@ -18,7 +18,7 @@ class Environment:
                  rdwalk_factor=0,
                  levi_factor=2, food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25, noise_mu=0,
                  noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01, demand=15, max_price=1,
-                 robot_comm_cooldown=10, robot_comm_stop_time=5):
+                 robot_comm_cooldown=10, robot_comm_stop_time=5, scaboteur_rotation=90):
         self.population = list()
         self.width = width
         self.height = height
@@ -41,7 +41,7 @@ class Environment:
         self.fuel_cost = fuel_cost
         self.info_cost = info_cost
         self.foraging_spawns = self.create_spawn_dicts()
-        self.create_robots()
+        self.create_robots(scaboteur_rotation)
         self.best_bot_id = self.get_best_bot_id()
         self.payment_database = PaymentDB([bot.id for bot in self.population], initial_reward, info_cost)
 
@@ -79,7 +79,7 @@ class Environment:
 
         self.market.step()
 
-    def create_robots(self):
+    def create_robots(self, scaboteur_rotation):
         for robot_id in range(self.nb_honest):
             robot = Agent(robot_id=robot_id,
                           x=randint(self.robot_radius, self.width - 1 - self.robot_radius),
@@ -107,7 +107,7 @@ class Environment:
                           noise_sd=self.noise_sd,
                           fuel_cost=self.fuel_cost,
                           info_cost=self.info_cost,
-                          behavior=ScaboteurBehavior(rotation_angle=90),  # Line that changes
+                          behavior=ScaboteurBehavior(rotation_angle=scaboteur_rotation),  # Line that changes
                           environment=self,
                           communication_cooldown=self.robot_comm_cooldown,
                           communication_stop_time=self.robot_comm_stop_time)
