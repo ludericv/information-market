@@ -6,6 +6,7 @@ import numpy as np
 from helpers.utils import InsufficientFundsException
 from model.navigation import Location
 import pandas as pd
+
 pd.options.mode.chained_assignment = None
 
 
@@ -31,15 +32,17 @@ class PaymentSystem(ABC):
 
 class DelayedPaymentPaymentSystem(PaymentSystem):
 
-    def __init__(self):
+    def __init__(self, information_share):
         super().__init__()
+        self.information_share = information_share
         self.transactions = set()
 
     def new_transaction(self, transaction: Transaction, payment_api):
         self.transactions.add(transaction)
 
     def new_reward(self, reward: float, payment_api, rewarded_id):
-        shares_mapping = self.calculate_shares_mapping(reward)
+        reward_to_distribute = self.information_share * reward
+        shares_mapping = self.calculate_shares_mapping(reward_to_distribute)
         for seller_id, share in shares_mapping.items():
             payment_api.transfer(rewarded_id, seller_id, share)
 
@@ -53,7 +56,7 @@ class DelayedPaymentPaymentSystem(PaymentSystem):
         total_shares = sum(final_mapping.values())
         for seller in final_mapping:
             final_mapping[seller] = final_mapping[seller] * (
-                        reward_share_to_distribute) / total_shares
+                reward_share_to_distribute) / total_shares
         return final_mapping
 
     def reset_transactions(self):
@@ -62,9 +65,10 @@ class DelayedPaymentPaymentSystem(PaymentSystem):
 
 class OutlierPenalisationPaymentSystem(PaymentSystem):
 
-    def __init__(self):
+    def __init__(self, information_share):
         super().__init__()
         self.transactions = set()
+        self.information_share = information_share
         self.pot_amount = 0
 
     def new_transaction(self, transaction: Transaction, payment_api):
@@ -73,7 +77,8 @@ class OutlierPenalisationPaymentSystem(PaymentSystem):
         self.pot_amount += stake_amount
         self.transactions.add(transaction)
 
-    def new_reward(self, reward_share_to_distribute, payment_api, rewarded_id):
+    def new_reward(self, reward, payment_api, rewarded_id):
+        reward_share_to_distribute = self.information_share * reward
         payment_api.apply_gains(rewarded_id, self.pot_amount)
         shares_mapping = self.calculate_shares_mapping(reward_share_to_distribute)
         for seller_id, share in shares_mapping.items():
@@ -107,7 +112,7 @@ class OutlierPenalisationPaymentSystem(PaymentSystem):
         total_shares = sum(final_mapping.values())
         for seller in final_mapping:
             final_mapping[seller] = final_mapping[seller] * (
-                        reward_share_to_distribute + self.pot_amount) / total_shares
+                    reward_share_to_distribute + self.pot_amount) / total_shares
         return final_mapping
 
     def reset_transactions(self):
@@ -123,14 +128,14 @@ class PaymentAPI:
 
 
 class PaymentDB:
-    def __init__(self, population_ids, initial_reward, info_share):
+    def __init__(self, population_ids, payment_system_params):
         self.nb_transactions = 0
         self.database = {}
-        self.info_share = info_share
+        # self.info_share = info_share
         for robot_id in population_ids:
-            self.database[robot_id] = {"reward": initial_reward,
-                                       "payment_system": DelayedPaymentPaymentSystem()}
-                                       # "payment_system": OutlierPenalisationPaymentSystem()}
+            self.database[robot_id] = {"reward": payment_system_params["initial_reward"],
+                                       "payment_system": eval(payment_system_params['class'])(
+                                           **payment_system_params['parameters'])}
 
     def pay_reward(self, robot_id, reward=1):
         self.database[robot_id]["reward"] += reward
@@ -146,7 +151,8 @@ class PaymentDB:
         self.database[transaction.buyer_id]["payment_system"].new_transaction(transaction, PaymentAPI(self))
 
     def pay_creditors(self, debitor_id, total_reward=1):
-        self.database[debitor_id]["payment_system"].new_reward(self.info_share * total_reward, PaymentAPI(self), debitor_id)
+        self.database[debitor_id]["payment_system"].new_reward(total_reward, PaymentAPI(self),
+                                                               debitor_id)
 
     def get_reward(self, robot_id):
         return self.database[robot_id]["reward"]
@@ -163,5 +169,3 @@ class PaymentDB:
         if gains < 0:
             raise ValueError("Gains must be positive")
         self.database[robot_id]["reward"] += gains
-
-

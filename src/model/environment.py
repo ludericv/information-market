@@ -3,7 +3,7 @@ from PIL import ImageTk
 from model.agent import Agent
 from model.behavior import SaboteurBehavior, CarefulBehavior, ScepticalBehavior, HonestBehavior, GreedyBehavior, \
     FreeRiderBehavior, ScaboteurBehavior, ScepticalGreedyBehavior
-from model.market import Market, RoundTripPriceMarket, FixedPriceMarket
+from model.market import Market, RoundTripPriceMarket, FixedPriceMarket, market_factory
 from model.navigation import Location
 from helpers.utils import norm, distance_between
 from random import randint, random
@@ -14,42 +14,19 @@ from model.payment import PaymentDB
 
 class Environment:
 
-    def __init__(self, width=500, height=500, nb_robots=30, nb_honest=29, robot_speed=3, robot_radius=5, comm_radius=25,
-                 rdwalk_factor=0,
-                 levi_factor=2, food_x=0, food_y=0, food_radius=25, nest_x=500, nest_y=500, nest_radius=25, noise_mu=0,
-                 noise_musd=1, noise_sd=0.1, initial_reward=3, fuel_cost=0.001, info_cost=0.01, demand=15, max_price=1,
-                 robot_comm_cooldown=10, robot_comm_stop_time=5, scaboteur_rotation=90):
+    def __init__(self, width, height, agent_params, behavior_params, food, nest, payment_system_params, market_params):
         self.population = list()
         self.width = width
         self.height = height
-        self.nb_robots = nb_robots
-        self.nb_honest = nb_honest
-        self.robot_speed = robot_speed
-        self.robot_radius = robot_radius
-        self.robot_communication_radius = comm_radius
-        self.robot_comm_cooldown=robot_comm_cooldown
-        self.robot_comm_stop_time=robot_comm_stop_time
-        self.rdwalk_factor = rdwalk_factor
-        self.levi_factor = levi_factor
-        self.food = (food_x, food_y, food_radius)
-        self.nest = (nest_x, nest_y, nest_radius)
+        self.food = (food['x'], food['y'], food['radius'])
+        self.nest = (nest['x'], nest['y'], nest['radius'])
         self.locations = {Location.FOOD: self.food, Location.NEST: self.nest}
-        self.noise_mu = noise_mu
-        self.noise_musd = noise_musd
-        self.noise_sd = noise_sd
-        self.initial_reward = initial_reward
-        self.fuel_cost = fuel_cost
-        self.info_cost = info_cost
         self.foraging_spawns = self.create_spawn_dicts()
-        self.create_robots(scaboteur_rotation)
+        self.create_robots(agent_params, behavior_params)
         self.best_bot_id = self.get_best_bot_id()
-        self.payment_database = PaymentDB([bot.id for bot in self.population], initial_reward, info_cost)
+        self.payment_database = PaymentDB([bot.id for bot in self.population], payment_system_params)
 
-        # demand in items that "perfect" robots would collect per step
-        self.demand = demand
-        demand_converted = demand*nb_robots*robot_speed/(2*norm([food_x-nest_x, food_y-nest_y]))
-        # self.market = RoundTripPriceMarket(2*norm([food_x-nest_x, food_y-nest_y])/robot_speed, max_price)
-        self.market = FixedPriceMarket(max_price)
+        self.market = market_factory(market_params)
         self.img = None
         self.timestep = 0
 
@@ -63,7 +40,7 @@ class Environment:
         neighbors_table = [[] for i in range(pop_size)]
         for id1 in range(pop_size):
             for id2 in range(id1 + 1, pop_size):
-                if distance_between(self.population[id1], self.population[id2]) < self.robot_communication_radius:
+                if distance_between(self.population[id1], self.population[id2]) < self.population[id1].communication_radius:
                     neighbors_table[id1].append(self.population[id2])
                     neighbors_table[id2].append(self.population[id1])
 
@@ -79,39 +56,18 @@ class Environment:
 
         self.market.step()
 
-    def create_robots(self, scaboteur_rotation):
-        for robot_id in range(self.nb_honest):
-            robot = Agent(robot_id=robot_id,
-                          x=randint(self.robot_radius, self.width - 1 - self.robot_radius),
-                          y=randint(self.robot_radius, self.height - 1 - self.robot_radius),
-                          speed=self.robot_speed,
-                          radius=self.robot_radius,
-                          noise_mu=self.noise_mu,
-                          noise_musd=self.noise_musd,
-                          noise_sd=self.noise_sd,
-                          fuel_cost=self.fuel_cost,
-                          info_cost=self.info_cost,
-                          behavior=ScepticalBehavior(),  # Line that changes
-                          environment=self,
-                          communication_cooldown=self.robot_comm_cooldown,
-                          communication_stop_time=self.robot_comm_stop_time)
-            self.population.append(robot)
-        for robot_id in range(self.nb_honest, self.nb_robots):
-            robot = Agent(robot_id=robot_id,
-                          x=randint(self.robot_radius, self.width - 1 - self.robot_radius),
-                          y=randint(self.robot_radius, self.height - 1 - self.robot_radius),
-                          speed=self.robot_speed,
-                          radius=self.robot_radius,
-                          noise_mu=self.noise_mu,
-                          noise_musd=self.noise_musd,
-                          noise_sd=self.noise_sd,
-                          fuel_cost=self.fuel_cost,
-                          info_cost=self.info_cost,
-                          behavior=ScaboteurBehavior(rotation_angle=scaboteur_rotation),  # Line that changes
-                          environment=self,
-                          communication_cooldown=self.robot_comm_cooldown,
-                          communication_stop_time=self.robot_comm_stop_time)
-            self.population.append(robot)
+    def create_robots(self, agent_params, behavior_params):
+        robot_id = 0
+        for behavior_params in behavior_params:
+            for _ in range(behavior_params['population_size']):
+                robot = Agent(robot_id=robot_id,
+                              x=randint(agent_params['radius'], self.width - 1 - agent_params['radius']),
+                              y=randint(agent_params['radius'], self.height - 1 - agent_params['radius']),
+                              environment=self,
+                              behavior_params=behavior_params,
+                              **agent_params)
+                robot_id += 1
+                self.population.append(robot)
 
     def get_sensors(self, robot):
         orientation = robot.orientation
@@ -218,13 +174,14 @@ class Environment:
     def get_robot_at(self, x, y):
         selected = None
         for bot in self.population:
-            if norm(bot.pos - np.array([x, y]).astype('float64')) < self.robot_radius:
+            if norm(bot.pos - np.array([x, y]).astype('float64')) < bot.radius():
                 selected = bot
                 break
 
         return selected
 
-    def create_spawn_dicts(self):
+    @staticmethod
+    def create_spawn_dicts():
         d = dict()
         for location in Location:
             d[location] = dict()

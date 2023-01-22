@@ -6,7 +6,7 @@ from math import sin, cos, radians
 from tkinter import LAST
 from collections import deque
 
-from model.behavior import State
+from model.behavior import State, behavior_factory
 from model.communication import CommunicationSession
 from model.navigation import Location
 import numpy as np
@@ -30,9 +30,9 @@ class AgentAPI:
 class Agent:
     colors = {State.EXPLORING: "gray35", State.SEEKING_FOOD: "orange", State.SEEKING_NEST: "green"}
 
-    def __init__(self, robot_id, x, y, speed, radius,
-                 noise_mu, noise_musd, noise_sd, fuel_cost,
-                 info_cost, behavior, environment, communication_cooldown,
+    def __init__(self, robot_id, x, y, environment, behavior_params, speed, radius,
+                 noise_sampling_mu, noise_sampling_sigma, noise_sd, fuel_cost,
+                 communication_radius, communication_cooldown,
                  communication_stop_time):
 
         self.id = robot_id
@@ -43,19 +43,19 @@ class Agent:
         self.items_collected = 0
         self._carries_food = False
 
+        self.communication_radius = communication_radius
         self._communication_cooldown = communication_cooldown
         self._comm_stop_time = communication_stop_time
         self._time_since_last_comm = self._comm_stop_time + self._communication_cooldown + 1
         self.comm_state = CommunicationState.OPEN
 
         self.orientation = random() * 360  # 360 degree angle
-        self.noise_mu = gauss(noise_mu, noise_musd)
+        self.noise_mu = gauss(noise_sampling_mu, noise_sampling_sigma)
         if random() >= 0.5:
             self.noise_mu = -self.noise_mu
         self.noise_sd = noise_sd
 
         self.fuel_cost = fuel_cost
-        self.info_cost = info_cost
         self.environment = environment
 
         self.levi_counter = 1
@@ -63,7 +63,7 @@ class Agent:
 
         self.dr = np.array([0, 0])
         self.sensors = {}
-        self.behavior = behavior
+        self.behavior = behavior_factory(behavior_params)
         self.api = AgentAPI(self)
 
     def __str__(self):
@@ -98,7 +98,7 @@ class Agent:
     def communicate(self, neighbors):
         self.previous_nav = copy.deepcopy(self.behavior.navigation_table)
         if self.comm_state == CommunicationState.OPEN:
-            session = CommunicationSession(self, neighbors, self.info_cost)
+            session = CommunicationSession(self, neighbors)
             self.behavior.buy_info(session)
         self.new_nav = self.behavior.navigation_table
         self.behavior.navigation_table = self.previous_nav
@@ -176,10 +176,10 @@ class Agent:
         tail = canvas.create_line(*self.trace)
 
     def draw_comm_radius(self, canvas):
-        circle = canvas.create_oval(self.pos[0] - self.environment.robot_communication_radius,
-                                    self.pos[1] - self.environment.robot_communication_radius,
-                                    self.pos[0] + self.environment.robot_communication_radius,
-                                    self.pos[1] + self.environment.robot_communication_radius,
+        circle = canvas.create_oval(self.pos[0] - self.communication_radius,
+                                    self.pos[1] - self.communication_radius,
+                                    self.pos[0] + self.communication_radius,
+                                    self.pos[1] + self.communication_radius,
                                     outline="gray")
 
     def draw_goal_vector(self, canvas):

@@ -12,9 +12,13 @@ def logistics_model(max_price, supply, demand):
         return 1
     # k = steepness assumed to be 0.1
     k = 0.1
-    x0 = np.log(max_price-1)/k
+    x0 = np.log(max_price - 1) / k
     x = demand - supply
-    return max_price/(1 + np.exp(k*(x0-x)))
+    return max_price / (1 + np.exp(k * (x0 - x)))
+
+
+def market_factory(market_params):
+    return eval(market_params['class'])(**market_params['parameters'])
 
 
 class Market:
@@ -59,7 +63,7 @@ class RoundTripPriceMarket:
             self.robot_times[robot_id] = 0
             return self.max_price
 
-        price = self.max_price*np.exp((self.min_time - self.robot_times[robot_id])/self.min_time)
+        price = self.max_price * np.exp((self.min_time - self.robot_times[robot_id]) / self.min_time)
         # print(f"{price} for {self.robot_times[robot_id]} (min of {self.min_time})")
         self.robot_times[robot_id] = 0
         return price
@@ -73,12 +77,12 @@ class RoundTripPriceMarket:
 
 
 class FixedPriceMarket:
-    def __init__(self, max_price):
+    def __init__(self, reward):
         self.demand = 10
-        self.max_price = max_price
+        self.reward = reward
 
     def sell_strawberry(self, robot_id):
-        return self.max_price
+        return self.reward
 
     def step(self):
         pass

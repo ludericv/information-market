@@ -18,6 +18,11 @@ class State(Enum):
     SEEKING_NEST = 3
 
 
+def behavior_factory(behavior_params):
+    behavior = eval(behavior_params['class'])(**behavior_params['parameters'])
+    return behavior
+
+
 class Behavior(ABC):
 
     def __init__(self):
@@ -82,7 +87,9 @@ class HonestBehavior(Behavior):
         for location in Location:
             if sensors[location]:
                 try:
-                    self.navigation_table.set_relative_position_for_location(location, api.get_relative_position_to_location(location))
+                    self.navigation_table.set_relative_position_for_location(location,
+                                                                             api.get_relative_position_to_location(
+                                                                                 location))
                     self.navigation_table.set_information_valid_for_location(location, True)
                     self.navigation_table.set_age_for_location(location, 0)
                 except NoLocationSensedException:
@@ -164,8 +171,9 @@ class CarefulBehavior(HonestBehavior):
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age_for_location(location) and bot_id not in self.pending_information[
-                    location]:
+                if data["age"] < self.navigation_table.get_age_for_location(location) and bot_id not in \
+                        self.pending_information[
+                            location]:
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         other_target.set_distance(other_target.get_distance() + session.get_distance_from(bot_id))
@@ -189,7 +197,7 @@ class CarefulBehavior(HonestBehavior):
         self.pending_information[location].clear()
 
     def step(self, api):
-        super().step( api)
+        super().step(api)
         self.update_pending_information()
 
     def update_pending_information(self):
@@ -215,16 +223,18 @@ class ScepticalBehavior(HonestBehavior):
             metadata = session.get_metadata(location)
             metadata_sorted_by_age = sorted(metadata.items(), key=lambda item: item[1]["age"])
             for bot_id, data in metadata_sorted_by_age:
-                if data["age"] < self.navigation_table.get_age_for_location(location) and bot_id not in self.pending_information[
-                    location]:
+                if data["age"] < self.navigation_table.get_age_for_location(location) and bot_id not in \
+                        self.pending_information[
+                            location]:
                     try:
                         other_target = session.make_transaction(neighbor_id=bot_id, location=location)
                         other_target.set_distance(other_target.get_distance() + session.get_distance_from(
                             bot_id))
 
                         if not self.navigation_table.is_information_valid_for_location(location) or \
-                                self.difference_score(self.navigation_table.get_relative_position_for_location(location),
-                                                      other_target.get_distance()) < self.threshold:
+                                self.difference_score(
+                                    self.navigation_table.get_relative_position_for_location(location),
+                                    other_target.get_distance()) < self.threshold:
                             new_target = self.strategy.combine(self.navigation_table.get_information_entry(location),
                                                                other_target,
                                                                np.array([0, 0]))

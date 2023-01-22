@@ -6,10 +6,9 @@ from model.payment import Transaction
 
 
 class CommunicationSession:
-    def __init__(self, client, neighbors, info_cost):
+    def __init__(self, client, neighbors):
         self._client = client
         self._neighbors = {n.id: n for n in neighbors if n.comm_state == CommunicationState.OPEN}
-        self._info_cost = info_cost
 
     def get_metadata(self, location):
         metadata = {n_id: {
