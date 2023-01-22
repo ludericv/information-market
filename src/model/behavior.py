@@ -307,10 +307,11 @@ class FreeRiderBehavior(ScepticalBehavior):
 
 
 class ScaboteurBehavior(ScepticalBehavior):
-    def __init__(self, rotation_angle=90):
+    def __init__(self, rotation_angle=90, threshold=0.25):
         super().__init__()
         self.color = "red"
         self.rotation_angle = rotation_angle
+        self.threshold = threshold
 
     def sell_info(self, location):
         t = copy.deepcopy(self.navigation_table.get_information_entry(location))

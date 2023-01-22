@@ -44,7 +44,8 @@
       "class": "ScaboteurBehavior",
       "population_size": 1,
       "parameters": {
-        "rotation_angle": 90
+        "rotation_angle": 90,
+        "threshold": 0.25
       }
     }
   ],

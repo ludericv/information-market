@@ -63,3 +63,26 @@ A simulation's parameters are defined in a json configuration file (such as `con
 - data_collection: parameters for data collection
   - precision_recording: whether to enable precision recording to save robot rewards at multiple points during the simulation
   - precision_recording_interval: resolution (in number of time steps) for the precision recording
+
+## Behaviors
+
+Robots can exhibit multiple behaviors. This sections briefly lists these behaviors and their parameters.
+
+- HonestBehavior: Most basic robot behavior. Simply exchanges information with everyone and uses the most recent information available.
+- SaboteurBehavior: Basic dishonest robot behavior. Rotates information vectors sold to other robots by a given angle.
+  - parameters: 
+    - rotation_angle: angle (in degrees) with which information vectors are rotated when sold.
+- ScepticalBehavior: Honest robot behavior implementing basic outlier detection. If information is too different from previous belief is bought, the robot will wait until receiving information confirming the new statement or the old belief before accepting or rejecting the new information.
+  - parameters:
+    - threshold: controls how much new information can be different from previous belief before being considered suspicious and needing confirmation.
+- ScaboteurBehavior: Saboteur behavior implementing the outlier detection from the ScepticalBehavior
+  - parameters:
+    - threshold: see ScepticalBehavior
+    - rotation_angle: see SaboteurBehavior
+
+## Payment Systems
+
+Payment systems implement the logic responsible for controlling the price of information.
+
+- DelayedPaymentPaymentSystem: information is exchanged for a token that is redeemed for a fixed share of the reward the buying robot receives when it completes a round trip.
+- OutlierPenalisationPaymentSystem: similar to the DelayedPaymentPayment system, but the share of the reward is proportional to how similar the information sold is to other information that was sold to the buying robot.
