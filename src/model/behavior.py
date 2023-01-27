@@ -45,7 +45,7 @@ class Behavior(ABC):
         return ""
 
 
-class HonestBehavior(Behavior):
+class NaiveBehavior(Behavior):
     def __init__(self):
         super().__init__()
         self.state = State.EXPLORING
@@ -159,7 +159,7 @@ class HonestBehavior(Behavior):
         self.navigation_table.rotate_from_angle(-get_orientation_from_vector(self.dr))
 
 
-class CarefulBehavior(HonestBehavior):
+class CarefulBehavior(NaiveBehavior):
     def __init__(self, security_level=3):
         super(CarefulBehavior, self).__init__()
         self.color = "deep sky blue"
@@ -212,7 +212,7 @@ class CarefulBehavior(HonestBehavior):
                f"{self.pending_information[Location.NEST]}"
 
 
-class ScepticalBehavior(HonestBehavior):
+class ScepticalBehavior(NaiveBehavior):
     def __init__(self, threshold=0.25):
         super(ScepticalBehavior, self).__init__()
         self.pending_information = {location: {} for location in Location}
@@ -274,7 +274,7 @@ class ScepticalBehavior(HonestBehavior):
                 target.rotate(-get_orientation_from_vector(self.dr))
 
 
-class SaboteurBehavior(HonestBehavior):
+class SaboteurBehavior(NaiveBehavior):
     def __init__(self, rotation_angle=90):
         super().__init__()
         self.color = "red"
@@ -286,7 +286,7 @@ class SaboteurBehavior(HonestBehavior):
         return t
 
 
-class GreedyBehavior(HonestBehavior):
+class GreedyBehavior(NaiveBehavior):
     def __init__(self):
         super().__init__()
         self.color = "green"
