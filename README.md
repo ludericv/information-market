@@ -49,15 +49,15 @@ A simulation's parameters are defined in a json configuration file (such as `con
   - noise_sd: odometric noise standard deviation (in degrees), i.e. how different the odometric noise at different time steps
   - fuel_cost: cost of moving at each time step (deducted from robot's monetary balance)
 - behaviors: list of behaviors used in the simulation
-  - class: name of the behavior class (from the code, see Behaviors section)
+  - class: name of the behavior class (from the code, see [Behaviors](#behaviors) section)
   - population_size: number of robots with the behavior
   - parameters: behavior-specific keyword arguments
 - payment_system: payment system parameters
-  - class: name of the payment system class (from the code, see Payment Systems section)
+  - class: name of the payment system class (from the code, see [Payment Systems](#payment-systems) section)
   - initial_reward: amount of money robots start the simulation with
   - parameters: payment-system-specific keyword arguments
 - market: reward mechanism parameters
-  - class: name of the market class (from the code, use "FixedPriceMarket")
+  - class: name of the market class (from the code, use "FixedPriceMarket", others are deprecated)
   - parameters: market-specific parameters
     - reward: reward for selling a strawberry at the nest
 - data_collection: parameters for data collection
