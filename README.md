@@ -22,6 +22,14 @@ cd path/to/src
 python info_market.py ../config/config.json
 ```
 
+## Running Multiple Experiments
+To conduct multiple experiments with different configurations, one can specify multiple configuration file paths as arguments when running the `info_market.py` script. Example:
+```bash
+cd path/to/src
+python info_market.py path/to/config1.json path/to/config2.json path/to/config99.json
+```
+This is mostly useful to run simulations without the GUI (set `activate` to false in the visualization parameters in the config files, as well as the `number_runs` parameter for the number of simulations you wish to perform with this configuration)
+
 ## Configuration
 
 A simulation's parameters are defined in a json configuration file (such as `config/config.json`). The parameters are the following:

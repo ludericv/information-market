@@ -2,7 +2,7 @@ import time
 
 from controllers.main_controller import MainController, Configuration
 from controllers.view_controller import ViewController
-from multiprocessing import Process, cpu_count, Pool
+from multiprocessing import Pool
 import pathlib
 from sys import argv
 
@@ -37,14 +37,16 @@ def run(config, i):
     lie_angle = config.value_of("behaviors")[1]['parameters']['rotation_angle']
     controller.start_simulation()
     filename = f"{nb_honest}sceptical_t25_{nb_saboteur}scaboteur_nopenalisation_rotation_{lie_angle}"
-    with open(f"../data/scaboteur_rotation/rewards/{filename}.txt", "a") as file:
+    # directory = "../data/scaboteur_rotation/"
+    directory = "../temp/"
+    with open(f"{directory}rewards/{filename}.txt", "a") as file:
         file.write(controller.get_reward_stats())
-    with open(f"../data/scaboteur_rotation/items_collected/{filename}.txt", "a") as file:
+    with open(f"{directory}items_collected/{filename}.txt", "a") as file:
         file.write(controller.get_items_collected_stats())
-    # with open(f"../data/scaboteur_rotation/drifts/{filename}.txt", "a") as file:
+    # with open(f"{directory}drifts/{filename}.txt", "a") as file:
     #     file.write(controller.get_drift_stats())
     if config.value_of("data_collection")["precision_recording"]:
-        path = f"../data/scaboteur_rotation/reward_evolution/{filename}"
+        path = f"{directory}reward_evolution/{filename}"
         pathlib.Path(path).mkdir(parents=True, exist_ok=True)
         with open(f"{path}/{i}.txt", "a") as file:
             file.write(controller.get_rewards_evolution())

@@ -14,8 +14,16 @@ class Configuration:
         with open(config_file, "r") as file:
             return json.load(file)
 
+    def save(self, save_path):
+        json_object = json.dumps(self._parameters, indent=2)
+        with open(save_path, 'w') as file:
+            file.write(json_object)
+
     def value_of(self, parameter):
         return self._parameters[parameter]
+
+    def set(self, parameter, value):
+        self._parameters[parameter] = value
 
 
 class MainController:
@@ -23,7 +31,7 @@ class MainController:
     def __init__(self, config: Configuration):
         self.config = config
         random_walk.set_parameters(**self.config.value_of('random_walk'),
-                                   max_levi_steps=self.config.value_of("simulation_steps")
+                                   max_levi_steps=self.config.value_of("simulation_steps")+1
                                    )
         self.environment = Environment(width=self.config.value_of("width"),
                                        height=self.config.value_of("height"),

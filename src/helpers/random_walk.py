@@ -24,8 +24,9 @@ def levi_pdf(max_steps, alpha):
 
 
 def set_parameters(random_walk_factor, levi_factor, max_levi_steps=15000):
-    global __crw_weights, __levi_weights
+    global __crw_weights, __levi_weights, __max_levi_steps
     thetas = np.arange(0, 360)
+    __max_levi_steps = max_levi_steps
     __crw_weights = crw_pdf(thetas, random_walk_factor)
     __levi_weights = levi_pdf(max_levi_steps, levi_factor)
     # print(sum(levi_pdf(10000000, levi_factor)[max_levi_steps:10000000]), (max_levi_steps**(-levi_factor))/levi_factor)
