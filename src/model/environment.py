@@ -1,9 +1,7 @@
 from math import cos, sin, radians
 from PIL import ImageTk
 from model.agent import Agent
-from model.behavior import SaboteurBehavior, CarefulBehavior, ScepticalBehavior, HonestBehavior, GreedyBehavior, \
-    FreeRiderBehavior, ScaboteurBehavior, ScepticalGreedyBehavior
-from model.market import Market, RoundTripPriceMarket, FixedPriceMarket, market_factory
+from model.market import market_factory
 from model.navigation import Location
 from helpers.utils import norm, distance_between
 from random import randint, random
