@@ -1070,6 +1070,24 @@ def penalisation_vs_stake_items_collected(n_scaboteurs=3):
     plt.show()
 
 
+def plot_data_from_francesco():
+    # Read file containing 128 rows of 25 values (1 row per simulation, 1 value per robot)
+    df = pd.read_csv("../data/24sceptical_025th_1scaboteur_0rotation_penalisation.txt", header=None)
+
+    # Sum each row to get the total amount of items collected in the simulation
+    # Result is a pandas Series object with 128 values
+    total_items_per_simulation = df.apply(np.sum, axis=1)  # sum across first axis (columns)
+
+    # Prepare plot
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(3, 6)
+
+    # Plot using seaborn boxplot
+    sns.boxplot(data=total_items_per_simulation, ax=ax)
+    plt.ylim(0, None)  # set y axis floor to 0
+    plt.show()
+
+
 if __name__ == '__main__':
     # supply_demand_simulation()
     # compare_behaviors()
@@ -1094,6 +1112,7 @@ if __name__ == '__main__':
     # reward_evolution()
     # correlation_plots()
     # scaboteur_rotation((1, 3))
-    penalisation_vs_stake_items_collected(3)
-    penalisation_vs_stake_items_collected(1)
+    # penalisation_vs_stake_items_collected(3)
+    # penalisation_vs_stake_items_collected(1)
+    plot_data_from_francesco()
     # scaboteur_rotation(3)
