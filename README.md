@@ -69,7 +69,10 @@ A simulation's parameters are defined in a json configuration file (such as `con
   - parameters: market-specific parameters
     - reward: reward for selling a strawberry at the nest
 - data_collection: parameters for data collection
-  - precision_recording: whether to enable precision recording to save robot rewards at multiple points during the simulation
+  - output_directory: output directory path
+  - filename: output data filename. File will be saved to <output_directory>/<metric>/filename for all metrics in metrics parameter.
+  - metrics: list of metrics to record (can be "reward", "items_collected", "drifts" or "rewards_evolution").
+  - precision_recording: whether to enable precision recording to save robot rewards at multiple points during the simulation. Need to add "rewards_evolution" in metrics list for the recording to be saved to a file.
   - precision_recording_interval: resolution (in number of time steps) for the precision recording
 
 ## Behaviors

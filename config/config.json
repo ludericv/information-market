@@ -12,7 +12,7 @@
     "radius": 50
   },
   "simulation_steps": 15000,
-  "number_runs": 128,
+  "number_runs": 16,
   "visualization": {
     "activate": true,
     "fps": 60
@@ -63,6 +63,9 @@
     }
   },
   "data_collection": {
+    "output_directory": "../data/test/",
+    "filename": "24sceptical_1scaboteur_r90_outlierpenalisation.csv",
+    "metrics": ["rewards", "items_collected"],
     "precision_recording": false,
     "precision_recording_interval": 100
   }
