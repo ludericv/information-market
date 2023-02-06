@@ -1,9 +1,12 @@
 import time
 
+import pandas as pd
+
 from controllers.main_controller import MainController, Configuration
 from controllers.view_controller import ViewController
 from multiprocessing import Pool
-import pathlib
+from pathlib import Path
+from os.path import join
 from sys import argv
 
 
@@ -25,31 +28,46 @@ def run_processes(config: Configuration):
     nb_runs = config.value_of("number_runs")
     start = time.time()
     with Pool() as pool:
-        pool.starmap(run, [(config, i) for i in range(nb_runs)])
+        controllers = pool.starmap(run, [(config, i) for i in range(nb_runs)])
+        record_data(config, controllers)
+
     print(f'Finished {nb_runs} runs in {time.time()-start: .02f} seconds.')
+
+
+def record_data(config, controllers):
+    output_directory = config.value_of("data_collection")["output_directory"]
+    filename = config.value_of("data_collection")["filename"]
+    for metric in config.value_of("data_collection")["metrics"]:
+        if metric == "rewards":
+            rewards_df = pd.DataFrame([controller.get_rewards() for controller in controllers])
+            Path(join(output_directory, "rewards")).mkdir(parents=True, exist_ok=True)
+            rewards_df.to_csv(join(output_directory, "rewards", filename), index=False, header=False)
+        elif metric == "items_collected":
+            items_collected_df = pd.DataFrame([controller.get_items_collected() for controller in controllers])
+            Path(join(output_directory, "items_collected")).mkdir(parents=True, exist_ok=True)
+            items_collected_df.to_csv(join(output_directory, "items_collected", filename), index=False, header=False)
+        elif metric == "drifts":
+            drifts_df = pd.DataFrame([controller.get_drifts() for controller in controllers])
+            Path(join(output_directory, "drifts")).mkdir(parents=True, exist_ok=True)
+            drifts_df.to_csv(join(output_directory, "drifts", filename), index=False, header=False)
+        elif metric == "rewards_evolution":
+            dataframes = []
+            for i, controller in enumerate(controllers):
+                df = pd.DataFrame(controller.get_rewards_evolution_list(), columns=["tick", "rewards_list"])
+                df["simulation_id"] = i
+                df = df.set_index("simulation_id")
+                dataframes.append(df)
+            Path(join(output_directory, "rewards_evolution")).mkdir(parents=True, exist_ok=True)
+            pd.concat(dataframes).to_csv(join(output_directory, "rewards_evolution", filename))
+        else:
+            print(f"[WARNING] Could not record metric: '{metric}'. Metric name is not valid.")
 
 
 def run(config, i):
     print(f"launched process {i+1}")
     controller = MainController(config)
-    nb_honest = config.value_of("behaviors")[0]['population_size']
-    nb_saboteur = config.value_of("behaviors")[1]['population_size']
-    lie_angle = config.value_of("behaviors")[1]['parameters']['rotation_angle']
     controller.start_simulation()
-    filename = f"{nb_honest}sceptical_t25_{nb_saboteur}scaboteur_nopenalisation_rotation_{lie_angle}"
-    # directory = "../data/scaboteur_rotation/"
-    directory = "../temp/"
-    with open(f"{directory}rewards/{filename}.txt", "a") as file:
-        file.write(controller.get_reward_stats())
-    with open(f"{directory}items_collected/{filename}.txt", "a") as file:
-        file.write(controller.get_items_collected_stats())
-    # with open(f"{directory}drifts/{filename}.txt", "a") as file:
-    #     file.write(controller.get_drift_stats())
-    if config.value_of("data_collection")["precision_recording"]:
-        path = f"{directory}reward_evolution/{filename}"
-        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-        with open(f"{path}/{i}.txt", "a") as file:
-            file.write(controller.get_rewards_evolution())
+    return controller
 
 
 if __name__ == '__main__':

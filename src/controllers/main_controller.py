@@ -44,11 +44,13 @@ class MainController:
                                        )
         self.tick = 0
         self.rewards_evolution = ""
+        self.rewards_evolution_list = []
 
     def step(self):
         if self.config.value_of("data_collection")['precision_recording'] and \
                 self.tick % self.config.value_of("data_collection")['precision_recording_interval'] == 0:
             self.rewards_evolution += f"{self.tick},{self.get_reward_stats()}"
+            self.rewards_evolution_list.append([self.tick, self.get_rewards()])
         if self.tick < self.config.value_of("simulation_steps"):
             self.tick += 1
             self.environment.step()
@@ -74,6 +76,15 @@ class MainController:
         res += "\n"
         return res
 
+    def get_rewards(self):
+        return [bot.reward() for bot in self.environment.population]
+
+    def get_items_collected(self):
+        return [bot.items_collected for bot in self.environment.population]
+
+    def get_drifts(self):
+        return [bot.noise_mu for bot in self.environment.population]
+
     def get_items_collected_stats(self):
         res = ""
         for bot in self.environment.population:
@@ -95,3 +106,6 @@ class MainController:
 
     def get_rewards_evolution(self):
         return self.rewards_evolution
+
+    def get_rewards_evolution_list(self):
+        return self.rewards_evolution_list
