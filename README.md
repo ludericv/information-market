@@ -23,7 +23,7 @@ python info_market.py ../config/config.json
 ```
 
 ## Running Multiple Experiments
-To conduct multiple experiments with different configurations, one can specify multiple configuration file paths as arguments when running the `info_market.py` script. Example:
+To conduct multiple experiments with different configurations, one can specify multiple configuration file paths as arguments when running the `info_market.py` script, interposing a space between the selected files. Example:
 ```bash
 cd path/to/src
 python info_market.py path/to/config1.json path/to/config2.json path/to/config99.json
@@ -79,21 +79,29 @@ A simulation's parameters are defined in a json configuration file (such as `con
 
 Robots can exhibit multiple behaviors. This sections briefly lists these behaviors and their parameters.
 
-- HonestBehavior: Most basic robot behavior. Simply exchanges information with everyone and uses the most recent information available.
-- SaboteurBehavior: Basic dishonest robot behavior. Rotates information vectors sold to other robots by a given angle.
+- `NaiveBehavior`: Most basic robot behavior. Simply exchanges information with everyone and uses the most recent information available.
+- `SaboteurBehavior`: Basic dishonest robot behavior. Rotates information vectors sold to other robots by a given angle.
   - parameters: 
-    - rotation_angle: angle (in degrees) with which information vectors are rotated when sold.
-- ScepticalBehavior: Honest robot behavior implementing basic outlier detection. If information is too different from previous belief is bought, the robot will wait until receiving information confirming the new statement or the old belief before accepting or rejecting the new information.
+    - `rotation_angle`: angle (in degrees) with which information vectors are rotated when sold.
+- `ScepticalBehavior`: Honest robot behavior implementing basic outlier detection. If information is too different from previous belief is bought, the robot will wait until receiving information confirming the new statement or the old belief before accepting or rejecting the new information.
   - parameters:
-    - threshold: controls how much new information can be different from previous belief before being considered suspicious and needing confirmation.
-- ScaboteurBehavior: Saboteur behavior implementing the outlier detection from the ScepticalBehavior
+    - `threshold`: controls how much new information can be different from previous belief before being considered suspicious and needing confirmation.
+- `ScaboteurBehavior`: Saboteur behavior implementing the outlier detection from the ScepticalBehavior
   - parameters:
-    - threshold: see ScepticalBehavior
-    - rotation_angle: see SaboteurBehavior
+    - `threshold`: see ScepticalBehavior
+    - `rotation_angle`: see SaboteurBehavior
 
 ## Payment Systems
 
 Payment systems implement the logic responsible for controlling the price of information.
 
-- DelayedPaymentPaymentSystem: information is exchanged for a token that is redeemed for a fixed share of the reward the buying robot receives when it completes a round trip.
-- OutlierPenalisationPaymentSystem: similar to the DelayedPaymentPayment system, but the share of the reward is proportional to how similar the information sold is to other information that was sold to the buying robot.
+- `DelayedPaymentPaymentSystem`: information is exchanged for a token that is redeemed for a fixed share of the reward the buying robot receives when it completes a round trip.
+- `OutlierPenalisationPaymentSystem`: similar to the DelayedPaymentPayment system, but the share of the reward is proportional to how similar the information sold is to other information that was sold to the buying robot.
+
+## Visual Simulation and Hotkeys
+
+During a simulation with GUI (`activate` : true in the configuration file), you can select a robot (left click on its image) and observe useful datas about it.
+
+You can also use your keyboard to control the course of the simulation:
+- `SPACE`: pause/resume simulation;
+- TBC

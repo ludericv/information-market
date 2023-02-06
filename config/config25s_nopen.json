@@ -41,12 +41,12 @@
     },
     {
       "class": "ScepticalBehavior",
-      "population_size": 24,
+      "population_size": 25,
       "parameters": {
         "threshold": 0.25
+
       }
     },
-
     {
       "class": "SaboteurBehavior",
       "population_size": 0,
@@ -56,15 +56,15 @@
     },
     {
       "class": "ScaboteurBehavior",
-      "population_size": 1,
+      "population_size": 0,
       "parameters": {
-        "rotation_angle": 90,
+        "rotation_angle": 0,
         "threshold": 0.25
       }
     }
   ],
   "payment_system": {
-    "class": "OutlierPenalisationPaymentSystem",
+    "class": "DelayedPaymentPaymentSystem",
     "initial_reward": 1,
     "parameters": {
       "information_share": 0.5
@@ -78,7 +78,7 @@
   },
   "data_collection": {
     "output_directory": "../data/test/",
-    "filename": "24sceptical_1scaboteur_r90_outlierpenalisation.csv",
+    "filename": "25sceptical_025th_0scaboteur_0rotation_nopenalisation.csv",
     "metrics": ["rewards", "items_collected"],
     "precision_recording": false,
     "precision_recording_interval": 100

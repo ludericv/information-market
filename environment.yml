@@ -1,0 +1,10 @@
+name: tesi
+dependencies:
+  - python=3.10
+  - pip
+  - numpy>=1.19.5
+  - Pillow>=8.4.0
+  - pandas
+  - matplotlib
+  - seaborn
+  - scipy
