@@ -2,7 +2,7 @@
 ## Requirements
 To be able to run information-market, you must have:
 - A recent version of Linux, MacOSX or Windows
-- **Python** 3.6 or newer
+- **Python** 3.10 or newer
 ## Installation
 First clone the git repository into a given folder on your computer:
 ```bash
@@ -104,4 +104,5 @@ During a simulation with GUI (`activate` : true in the configuration file), you 
 
 You can also use your keyboard to control the course of the simulation:
 - `SPACE`: pause/resume simulation;
+- `N`: perform one step of the simulation (useful when paused);
 - TBC
