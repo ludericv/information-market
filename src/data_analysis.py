@@ -1,11 +1,16 @@
 import re
+import os
 from time import perf_counter
+import argparse
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import wilcoxon, mannwhitneyu, ranksums
+import scipy.stats as stats
+
+#percentage on axis for matplotlib
+import matplotlib.ticker as mtick
 
 from model.market import exponential_model, logistics_model
 from model.navigation import Location
@@ -28,6 +33,247 @@ name_conversion = {
     "scaboteur": "scaboteur",
     "sceptical": "sceptical"
 }
+
+DATA_DIR="../data/"
+
+comparisons=["scaboteur_rotation"
+]
+
+metrics=[
+    "rewards",
+    "items_collected"
+]
+
+filenames = [
+            "25sceptical_3000th_0scaboteur_0rotation_nopenalisation.txt",
+            "24sceptical_3000th_1scaboteur_0rotation_nopenalisation.txt",
+            # "22sceptical_3000th_3scaboteur_0rotation_nopenalisation.txt",#SAME AS 24 ABOVE
+            "25sceptical_3000th_0scaboteur_0rotation_penalisation.txt",
+            "24sceptical_3000th_1scaboteur_0rotation_penalisation.txt",
+            # "22sceptical_3000th_3scaboteur_0rotation_penalisation.txt",#same as 24 above
+            "25sceptical_025th_0scaboteur_0rotation_nopenalisation.txt",
+            "24sceptical_025th_1scaboteur_0rotation_nopenalisation.txt",
+            "25sceptical_025th_0scaboteur_0rotation_penalisation.txt",
+            "24sceptical_025th_1scaboteur_0rotation_penalisation.txt",
+            # "22sceptical_025th_3scaboteur_0rotation_nopenalisation.txt",#SAME AS 24 ABOVE
+            # "22sceptical_025th_3scaboteur_0rotation_penalisation.txt"
+]
+
+#------------------------------------------------------------------------------------------------
+#---------------------------------------UTILITIES------------------------------------------------Ù
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--standalone',action='store_true',
+                    help='considers metric for single robot')
+    parser.add_argument('-p', '--relative','--percent',action='store_true',
+                    help='considers metric relative to total of experiment')
+    parser.add_argument('-c', '--comulative',action='store_true',
+                    help='consider comulated metric for an experiment')
+    parser.add_argument('-i','--items-collected', action='store_true',
+                        help='consider as metric the number of items collected')
+    parser.add_argument('-r', '--rewards', action='store_true',
+                        help='consider as metric rewards')
+    args=parser.parse_args()
+    if args.items_collected:
+        metric="items_collected"
+    elif args.rewards:  
+        metric="rewards"   
+    else:
+        print("Automatically selected metric: items_collected")
+        metric="items_collected"
+    if args.standalone:
+        mode="s"
+    elif args.relative:
+        mode="r"
+    elif args.comulative:
+        mode="c"
+    else:
+        print("Automatically selected mode: c (comulative)")
+        mode="c"
+    return metric, mode
+
+
+def get_file_config(filename:str):
+    name_honest = re.search('[a-z]+', filename.split("_")[0]).group()
+    name_saboteur = re.search('[a-z]+', filename.split("_")[2]).group()
+    n_honest = int(re.search('[0-9]+', filename.split("_")[0]).group())
+    n_saboteur = int(re.search('[0-9]+', filename.split("_")[2]).group())
+    skepticism=re.search('[0-9]+', filename.split("_")[1]).group()
+    if int(skepticism)>1340:
+        if int(skepticism)>2000:
+            skepticism="naive"
+        else:
+            skepticism="threshold naive"
+    else:
+        if skepticism[0]=="0":
+            skepticism="0."+skepticism[1:]
+        skepticism="th "+skepticism
+    lie_angle=filename.split("_")[3]
+    lie_angle=re.search('[0-9]+', lie_angle).group()+" "+\
+        re.search('[a-z]+', lie_angle).group() \
+        if n_saboteur>0 else "no saboteurs"
+    penalisation=re.search('[a-z,0-9]+', filename.split("_")[4]).group()
+    penalisation= "no pen" if penalisation=="nopenalisation" else "pen"
+    return name_honest, n_honest,name_saboteur,n_saboteur,\
+                skepticism, lie_angle,penalisation
+
+#------------------------------------------------------------------------------------------------
+#---------------------------------------STATISTICAL TESTS----------------------------------------
+def myttest(
+            filenames=[],
+            data_folder="../data/",\
+            compare="scaboteur_rotation",\
+            # metric="rewards",
+            metric="items_collected",
+            ):
+    '''
+    :param filenames: list of filenames to compare,
+                    otherwise characteristics to retrieve;
+                    format string with any number of characteristics,
+                    separated by "_".
+                    characteristics (each one is a string):
+                    - number of honests ("Nsceptical")
+                    - number of saboteurs ("Mscaboteur")
+                    - skepticism threshold ("Kth")
+                    - lie angle ("Qrotation")
+                    - penalisation ("{no,""}penalisation")
+                    NOTE: ONLY FIRST TWO FILES ARE COMPARED
+    '''
+    PASS_THRESHOLD=0.05
+    #BUG CORRECT CHOICE ORDER automatic retrieval of experiments with any robot combination,
+    #  given other characteristics
+    # filestocheck=[]
+    # if type(filenames)==str:
+    #     characteristics=filenames.split("_")
+    #     filenames=[]
+    #     filestocheck=os.listdir(f"{data_folder}{compare}/{metric}/")
+    #     for f in filestocheck:
+    #         if len(filenames)<2:
+    #             for c in characteristics:
+    #                 if re.search(c,f): filenames.append(f)
+    #         else: break
+    #     if len(filenames)<2:
+    #         print("ERROR: not enough files found to compare")
+    #         return
+    # elif filenames==[] or len(filenames)>2:
+    #     print("ERROR: please provide two filenames to \
+    #         compare or characteristic to autoselect")
+    #     return
+    filenames = [
+            # "25sceptical_3000th_0scaboteur_0rotation_nopenalisation.txt",
+            # "24sceptical_3000th_1scaboteur_0rotation_nopenalisation.txt",
+            # "25sceptical_3000th_0scaboteur_0rotation_penalisation.txt",
+            # "24sceptical_3000th_1scaboteur_0rotation_penalisation.txt",
+            "25sceptical_025th_0scaboteur_0rotation_nopenalisation.txt",
+            "24sceptical_025th_1scaboteur_0rotation_nopenalisation.txt",
+            # "25sceptical_025th_0scaboteur_0rotation_penalisation.txt",
+            # "24sceptical_025th_1scaboteur_0rotation_penalisation.txt",
+            ]
+    data1=pd.read_csv(f"{data_folder}{compare}/{metric}/{filenames[0]}").apply(np.sum, axis=1)
+    data2=pd.read_csv(f"{data_folder}{compare}/{metric}/{filenames[1]}").apply(np.sum, axis=1)
+    t_test=stats.ttest_ind(data1, data2, equal_var=False)
+    print(f"t-test: {t_test.statistic},\n p-value: {t_test.pvalue}")
+
+def myanovatest(
+                filenames=[],
+                data_folder="../data/",\
+                compare="scaboteur_rotation",\
+                # metric="rewards",
+                metric="items_collected",
+                ):
+    filenames = [
+            # "25sceptical_3000th_0scaboteur_0rotation_nopenalisation.txt",
+            # "24sceptical_3000th_1scaboteur_0rotation_nopenalisation.txt",
+            # "25sceptical_3000th_0scaboteur_0rotation_penalisation.txt",
+            # "24sceptical_3000th_1scaboteur_0rotation_penalisation.txt",
+            # "25sceptical_025th_0scaboteur_0rotation_nopenalisation.txt",
+            # "24sceptical_025th_1scaboteur_0rotation_nopenalisation.txt",
+            # "25sceptical_025th_0scaboteur_0rotation_penalisation.txt",
+            # "24sceptical_025th_1scaboteur_0rotation_penalisation.txt",
+            ]
+    data1=pd.read_csv(f"{data_folder}{compare}/{metric}/{filenames[0]}").apply(np.sum, axis=1)
+    data2=pd.read_csv(f"{data_folder}{compare}/{metric}/{filenames[1]}").apply(np.sum, axis=1)
+    anova_test=stats.f_oneway(data1, data2)
+    print(f"F-statistic: {anova_test.statistic},\np-value: {anova_test.pvalue}\n")
+
+#------------------------------------------------------------------------------------------------
+#---------------------------------------PLOTTING-------------------------------------------------
+def myboxplots(
+                filenames=[],
+                data_folder="../data/",\
+                title="",\
+                compare="scaboteur_rotation",\
+                # metric="rewards",
+                metric="items_collected",
+                mode="c",
+                by=1
+                ):
+    '''
+    :param filenames: list of filenames to compare, 
+                    if empty all the files in the folder are fetched
+    :param mode: "s" for standalone, "c" for cumulative, "r" for relative
+    '''
+    BASE_BOX_WIDTH=3
+    BASE_BOX_HEIGHT=7
+    if filenames==[]:
+        filenames=os.listdir(f"{data_folder}{compare}/{metric}/")
+        #TODO is the following better?
+        # filenames=[f for f in os.listdir(use_dir) if os.path.isfile(os.path.join(use_dir, f))]
+    n_boxes=len(filenames)// by
+    fig, axs = plt.subplots(by, n_boxes, sharey=True)
+    fig.set_size_inches(BASE_BOX_WIDTH*n_boxes,BASE_BOX_HEIGHT)
+    # fig.supxlabel()
+    # axs.legend(filenames)#possibly it works only with subplots()
+    sns.set_style("whitegrid")
+    for idx,filename in enumerate(filenames):
+        name_honest, n_honest,name_saboteur,n_saboteur,\
+            skepticism, lie_angle,penalisation=get_file_config(filename)
+        params=f"{n_honest} honests,\n{skepticism},\n {lie_angle},\n {penalisation}"
+        axs[idx].set_xlabel(params)
+        # axs[col].set_title()
+        filename=f"{data_folder}{compare}/{metric}/{filename}"
+
+        #TODO add honest and saboteur different graphs side by side
+        # honest_flat = pd.DataFrame(df_rel.iloc[:, :n_honest].to_numpy().flatten())
+        # bad_flat = pd.DataFrame(df_rel.iloc[:, -n_bad:].to_numpy().flatten())
+        # goods = pd.DataFrame(np.full(honest_flat.shape, honest_name))
+        # bads = pd.DataFrame(np.full(honest_flat.shape, bad_name))
+        # honest_flat = pd.concat([honest_flat, goods], axis=1)
+        # bad_flat = pd.concat([bad_flat, bads], axis=1)
+        # final_df = pd.concat([honest_flat, bad_flat])
+        # final_df.columns = [y_name, hue_name]
+
+        match mode:
+            case "r":
+            #RELATIVE DATA
+                #TODO correct?
+                data=pd.read_csv(filename, header=None).to_numpy()
+                data=(100*data/np.sum(data,axis=1)[:,None]).flatten()
+                #TODO could use title functions inside plot calls
+                sns.boxplot(data=data,ax=axs[idx]).set(xticklabels=[],xticks=[]) 
+                data_title=metric+ " (relative)"
+                axs[idx].yaxis.set_major_formatter(mtick.PercentFormatter())
+            case "c":
+            #CUMULATIVE DATA
+                data=pd.read_csv(filename, header=None)
+                datatot = data.apply(np.sum, axis=1)
+                sns.boxplot(data=datatot,ax=axs[idx]).set(xticklabels=[],xticks=[]) 
+                # angle = 10 * (idx + 0)
+                # sns.boxplot(x=[angle for _ in batch_total], y=data, ax=axs[idx], linewidth=2)
+                data_title=metric+ " (cumulative)"
+            case "s":
+            #STANDALONE DATA
+                data=pd.read_csv(filename, header=None).values.flatten()
+                sns.boxplot(data=data.flatten(),ax=axs[idx]).set(xticklabels=[],xticks=[]) 
+                data_title=metric+ " (standalone)"
+    sns.despine(fig, axs[idx], trim=False)#removes borders
+    fig.supylabel(data_title.replace("_"," "))
+    title=title if title!="" else f"compare: {compare}".replace("_"," ")
+    # title=title if title!="" else f"compare: {compare}\n{n_honest} {name_honest} vs {n_saboteur} {name_saboteur}".replace("_"," ")
+    fig.suptitle(title,fontweight="bold")
+    plt.ylim(bottom=0)
+    plt.show()
 
 
 def main():
@@ -422,7 +668,7 @@ def make_violin_plots(filenames, by=1, comparison_on="behaviors", metric="reward
             # means = df.iloc[:, :n_honest].apply(np.mean, axis=1) * 100 / totals
             honest_flat = pd.DataFrame(df_rel.iloc[:, :n_honest].to_numpy().flatten())
             bad_flat = pd.DataFrame(df_rel.iloc[:, -n_bad:].to_numpy().flatten())
-            print(filename, ranksums(honest_flat[:len(honest_flat) // 15], honest_flat[len(honest_flat) // 15:]))
+            print(filename, stats.ranksums(honest_flat[:len(honest_flat) // 15], honest_flat[len(honest_flat) // 15:]))
 
             # means_bad = df.iloc[:, -n_bad:].apply(np.mean, axis=1) * 100 / totals
             # Draw a nested violinplot and split the violins for easier comparison
@@ -471,7 +717,7 @@ def make_boxplots(filenames, by=1, comparison_on="behaviors", metric="rewards",
             df_rel = df.div(totals, axis=0) * 100
             honest_flat = pd.DataFrame(df_rel.iloc[:, :n_honest].to_numpy().flatten())
             bad_flat = pd.DataFrame(df_rel.iloc[:, -n_bad:].to_numpy().flatten())
-            print(filename, ranksums(honest_flat, bad_flat))
+            print(filename, stats.ranksums(honest_flat, bad_flat))
 
             goods = pd.DataFrame(np.full(honest_flat.shape, honest_name))
             bads = pd.DataFrame(np.full(honest_flat.shape, bad_name))
@@ -907,12 +1153,12 @@ def correlation_plot(filename, directory, suptitle=None):
     plt.show()
 
 
-filenames = [
-    "25smart_t25_0smartboteur_windowvouch.txt",
-    "20smart_t25_5smartboteur_windowvouch.txt",
-    # "22smart_t25_3smartboteur_windowvouch.txt",
-    # "24smart_t25_1smartboteur_windowvouch.txt",
-]
+# filenames = [
+#     "25smart_t25_0smartboteur_windowvouch.txt",
+#     "20smart_t25_5smartboteur_windowvouch.txt",
+#     # "22smart_t25_3smartboteur_windowvouch.txt",
+#     # "24smart_t25_1smartboteur_windowvouch.txt",
+# ]
 
 
 def correlation_plots():
@@ -1070,24 +1316,6 @@ def penalisation_vs_stake_items_collected(n_scaboteurs=3):
     plt.show()
 
 
-def plot_data_from_francesco():
-    # Read file containing 128 rows of 25 values (1 row per simulation, 1 value per robot)
-    df = pd.read_csv("../data/24sceptical_025th_1scaboteur_0rotation_penalisation.txt", header=None)
-
-    # Sum each row to get the total amount of items collected in the simulation
-    # Result is a pandas Series object with 128 values
-    total_items_per_simulation = df.apply(np.sum, axis=1)  # sum across first axis (columns)
-
-    # Prepare plot
-    fig, ax = plt.subplots(1, 1)
-    fig.set_size_inches(3, 6)
-
-    # Plot using seaborn boxplot
-    sns.boxplot(data=total_items_per_simulation, ax=ax)
-    plt.ylim(0, None)  # set y axis floor to 0
-    plt.show()
-
-
 if __name__ == '__main__':
     # supply_demand_simulation()
     # compare_behaviors()
@@ -1114,5 +1342,14 @@ if __name__ == '__main__':
     # scaboteur_rotation((1, 3))
     # penalisation_vs_stake_items_collected(3)
     # penalisation_vs_stake_items_collected(1)
-    plot_data_from_francesco()
     # scaboteur_rotation(3)
+
+    # metric,mode=parse_args()
+    # myboxplots(
+    #             filenames=filenames,
+    #             data_folder=DATA_DIR,
+    #             metric=metric,
+    #             mode=mode)
+    # myttest()
+    # myanovatest()
+    pass
