@@ -30,13 +30,14 @@ class AgentAPI:
 class Agent:
     colors = {State.EXPLORING: "gray35", State.SEEKING_FOOD: "orange", State.SEEKING_NEST: "green"}
 
-    def __init__(self, robot_id, x, y, environment, behavior_params, speed, radius,
+    def __init__(self, robot_id, x, y, environment, behavior_params, clock, speed, radius,
                  noise_sampling_mu, noise_sampling_sigma, noise_sd, fuel_cost,
                  communication_radius, communication_cooldown,
                  communication_stop_time):
 
         self.id = robot_id
         self.pos = np.array([x, y]).astype('float64')
+        self.clock = clock
 
         self._speed = speed
         self._radius = radius
@@ -231,7 +232,8 @@ class Agent:
 
     def drop_food(self):
         self._carries_food = False
-        self.items_collected += 1
+        if not self.clock.is_in_transitory():
+            self.items_collected += 1
 
     def pickup_food(self):
         self._carries_food = True
@@ -243,7 +245,7 @@ class Agent:
         self.dr = dr
 
     def record_transaction(self, transaction):
-        transaction.timestep = self.environment.timestep
+        transaction.timestep = self.clock.tick
         self.environment.payment_database.record_transaction(transaction)
 
     def update_communication_state(self):

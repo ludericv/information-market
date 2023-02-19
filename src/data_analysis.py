@@ -1316,6 +1316,36 @@ def penalisation_vs_stake_items_collected(n_scaboteurs=3):
     plt.show()
 
 
+def after_transitory_phase():
+    withpen = pd.read_csv('../data/penalisation_investigation/items_collected/25sceptical_0scaboteur_outlierpenalisation_transitory7500.csv', header=None)
+    withoutpen = pd.read_csv('../data/penalisation_investigation/items_collected/25sceptical_0scaboteur_nopenalisation_transitory7500.csv', header=None)
+    withpen['penalisation'] = 'with'
+    withoutpen['penalisation'] = 'without'
+    df = pd.concat([withoutpen, withpen]).sort_values('penalisation')
+    df['Number of items collected (after first half of simulation)'] = df.iloc[:, :25].apply(lambda row: row.sum(), axis=1)
+    df["Scaboteur 'lie angle' (in degrees)"] = 0
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(3, 6)
+    sns.boxplot(data=df, x="Scaboteur 'lie angle' (in degrees)", y='Number of items collected (after first half of simulation)', hue='penalisation', ax=ax)
+    plt.title("Swarm Performance: With or Without Penalisation, Ignoring First 7500 Steps")
+    plt.ylim(0, None)
+    plt.show()
+
+def reduced_noise():
+    withpen = pd.read_csv('../data/penalisation_investigation/items_collected/25sceptical_0scaboteur_outlierpenalisation_halfnoise.csv', header=None)
+    withoutpen = pd.read_csv('../data/penalisation_investigation/items_collected/25sceptical_0scaboteur_nopenalisation_halfnoise.csv', header=None)
+    withpen['penalisation'] = 'with'
+    withoutpen['penalisation'] = 'without'
+    df = pd.concat([withoutpen, withpen]).sort_values('penalisation')
+    df['Number of items collected'] = df.iloc[:, :25].apply(lambda row: row.sum(), axis=1)
+    df["Scaboteur 'lie angle' (in degrees)"] = 0
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(6, 6)
+    sns.boxplot(data=df, x="Scaboteur 'lie angle' (in degrees)", y='Number of items collected', hue='penalisation', ax=ax)
+    plt.title("Swarm Performance: With or Without Penalisation, Reduced Odometric Noise")
+    plt.ylim(0, None)
+    plt.show()
+
 if __name__ == '__main__':
     # supply_demand_simulation()
     # compare_behaviors()
@@ -1352,4 +1382,5 @@ if __name__ == '__main__':
     #             mode=mode)
     # myttest()
     # myanovatest()
+    after_transitory_phase()
     pass

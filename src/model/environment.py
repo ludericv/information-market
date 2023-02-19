@@ -12,10 +12,11 @@ from model.payment import PaymentDB
 
 class Environment:
 
-    def __init__(self, width, height, agent_params, behavior_params, food, nest, payment_system_params, market_params):
+    def __init__(self, width, height, agent_params, behavior_params, food, nest, payment_system_params, market_params, clock):
         self.population = list()
         self.width = width
         self.height = height
+        self.clock = clock
         self.food = (food['x'], food['y'], food['radius'])
         self.nest = (nest['x'], nest['y'], nest['radius'])
         self.locations = {Location.FOOD: self.food, Location.NEST: self.nest}
@@ -33,7 +34,6 @@ class Environment:
 
     def step(self):
         # compute neighbors
-        self.timestep += 1
         pop_size = len(self.population)
         neighbors_table = [[] for i in range(pop_size)]
         for id1 in range(pop_size):
@@ -63,6 +63,7 @@ class Environment:
                               y=randint(agent_params['radius'], self.height - 1 - agent_params['radius']),
                               environment=self,
                               behavior_params=behavior_params,
+                              clock=self.clock,
                               **agent_params)
                 robot_id += 1
                 self.population.append(robot)

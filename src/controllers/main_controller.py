@@ -9,6 +9,9 @@ class Configuration:
     def __init__(self, config_file):
         self._parameters = self.read_config(config_file)
 
+    def __contains__(self, item):
+        return item in self._parameters
+
     @staticmethod
     def read_config(config_file):
         with open(config_file, "r") as file:
@@ -26,6 +29,24 @@ class Configuration:
         self._parameters[parameter] = value
 
 
+class Clock:
+    def __init__(self, config: Configuration):
+        self._tick = 0
+        self.transitory_period = 0
+        if "transitory_period" in config:
+            self.transitory_period = config.value_of("transitory_period")
+
+    def step(self):
+        self._tick += 1
+
+    @property
+    def tick(self):
+        return self._tick
+
+    def is_in_transitory(self):
+        return self._tick < self.transitory_period
+
+
 class MainController:
 
     def __init__(self, config: Configuration):
@@ -33,6 +54,7 @@ class MainController:
         random_walk.set_parameters(**self.config.value_of('random_walk'),
                                    max_levi_steps=self.config.value_of("simulation_steps")+1
                                    )
+        self.clock = Clock(config)
         self.environment = Environment(width=self.config.value_of("width"),
                                        height=self.config.value_of("height"),
                                        agent_params=self.config.value_of("agent"),
@@ -40,19 +62,19 @@ class MainController:
                                        food=self.config.value_of("food"),
                                        nest=self.config.value_of("nest"),
                                        payment_system_params=config.value_of("payment_system"),
-                                       market_params=config.value_of("market")
+                                       market_params=config.value_of("market"),
+                                       clock=self.clock
                                        )
-        self.tick = 0
         self.rewards_evolution = ""
         self.rewards_evolution_list = []
 
     def step(self):
         if self.config.value_of("data_collection")['precision_recording'] and \
-                self.tick % self.config.value_of("data_collection")['precision_recording_interval'] == 0:
-            self.rewards_evolution += f"{self.tick},{self.get_reward_stats()}"
-            self.rewards_evolution_list.append([self.tick, self.get_rewards()])
-        if self.tick < self.config.value_of("simulation_steps"):
-            self.tick += 1
+                self.clock.tick % self.config.value_of("data_collection")['precision_recording_interval'] == 0:
+            self.rewards_evolution += f"{self.clock.tick},{self.get_reward_stats()}"
+            self.rewards_evolution_list.append([self.clock.tick, self.get_rewards()])
+        if self.clock.tick < self.config.value_of("simulation_steps"):
+            self.clock.step()
             self.environment.step()
 
     def start_simulation(self):
