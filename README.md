@@ -1,4 +1,8 @@
 # Master's Thesis: An Information Market for Social Navigation in Robots
+This simulator explores the new idea of using a decentralized information market to regulate information exchange in a robot swarm's foraging task.
+The technical report containing more in depth information about the project can be found [here](https://iridia.ulb.ac.be/IridiaTrSeries/link/IridiaTr2022-006.pdf).
+A revised version of the manuscript is currently in the review process at Nature Scientific Reports. Configuration files to reproduce experiments in the paper can be found in this repository's `configs_paper` directory.
+
 ## Requirements
 To be able to run information-market, you must have:
 - A recent version of Linux, MacOSX or Windows
