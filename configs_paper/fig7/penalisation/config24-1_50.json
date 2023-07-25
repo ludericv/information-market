@@ -1,0 +1,88 @@
+{
+  "width": 1200,
+  "height": 600,
+  "food": {
+    "x": 200,
+    "y": 300,
+    "radius": 50
+  },
+  "nest": {
+    "x": 1000,
+    "y": 300,
+    "radius": 50
+  },
+  "simulation_steps": 30000,
+  "transitory_period": 20000,
+  "number_runs": 32,
+  "visualization": {
+    "activate": false,
+    "fps": 60
+  },
+  "random_walk": {
+    "random_walk_factor": 0.9,
+    "levi_factor": 1.4
+  },
+  "agent": {
+    "radius": 8,
+    "speed": 2.5,
+    "communication_radius": 50,
+    "communication_stop_time": 0,
+    "communication_cooldown": 0,
+    "noise_sampling_mu": 0.05,
+    "noise_sampling_sigma": 0.05,
+    "noise_sd": 0.05,
+    "fuel_cost": 0
+  },
+  "behaviors": [
+    {
+      "class": "NaiveBehavior",
+      "population_size": 0,
+      "parameters": {}
+    },
+    {
+      "class": "ScepticalBehavior",
+      "population_size": 24,
+      "parameters": {
+        "threshold": 0.25
+      }
+    },
+    {
+      "class": "SaboteurBehavior",
+      "population_size": 0,
+      "parameters": {
+        "rotation_angle": 0
+      }
+    },
+    {
+      "class": "ScaboteurBehavior",
+      "population_size": 1,
+      "parameters": {
+        "rotation_angle": 50,
+        "threshold": 0.25
+      }
+    }
+  ],
+  "payment_system": {
+    "class": "OutlierPenalisationPaymentSystem",
+    "initial_reward": 1,
+    "parameters": {
+      "information_share": 0.5
+    }
+  },
+  "market": {
+    "class": "FixedPriceMarket",
+    "parameters": {
+      "reward": 1
+    }
+  },
+  "data_collection": {
+    "output_directory": "../data/scaboteur_rotation_transitory/20000",
+    "filename": "24sceptical_1scaboteur_penalisation_50.csv",
+    "metrics": [
+      "rewards",
+      "items_collected"
+    ],
+    "precision_recording": false,
+    "precision_recording_interval": 100
+  }
+}

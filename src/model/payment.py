@@ -65,16 +65,16 @@ class DelayedPaymentPaymentSystem(PaymentSystem):
 
 class OutlierPenalisationPaymentSystem(PaymentSystem):
 
-    def __init__(self, information_share):
+    def __init__(self, information_share, stake_amount=.04):
         super().__init__()
         self.transactions = set()
         self.information_share = information_share
         self.pot_amount = 0
+        self.stake_amount = stake_amount
 
     def new_transaction(self, transaction: Transaction, payment_api):
-        stake_amount = 1 / 25
-        payment_api.apply_cost(transaction.seller_id, stake_amount)
-        self.pot_amount += stake_amount
+        payment_api.apply_cost(transaction.seller_id, self.stake_amount)
+        self.pot_amount += self.stake_amount
         self.transactions.add(transaction)
 
     def new_reward(self, reward, payment_api, rewarded_id):
