@@ -1,7 +1,15 @@
-# Master's Thesis: An Information Market for Social Navigation in Robots
+# Supplementary Software: An Information Market for Social Navigation in Robots
+This repository is the Supplementary Software of a research study published in the article:
+
+_An Information Market for Social Navigation in Robots_ by Ludéric Van Calck, Alexandre Pacheco, Volker Strobel, Marco Dorigo, and Andreagiovanni Reina (2023).
+
+A pre-print of the article can be found [here](https://iridia.ulb.ac.be/IridiaTrSeries/link/IridiaTr2022-006.pdf).
+
 This simulator explores the new idea of using a decentralized information market to regulate information exchange in a robot swarm's foraging task.
-The technical report containing more in depth information about the project can be found [here](https://iridia.ulb.ac.be/IridiaTrSeries/link/IridiaTr2022-006.pdf).
-A revised version of the manuscript is currently in the review process at Nature Scientific Reports. Configuration files to reproduce experiments in the paper can be found in this repository's `configs_paper` directory.
+
+## How to replicate the results from the article
+In order to generate all the figures included and analysed in the [article](https://iridia.ulb.ac.be/IridiaTrSeries/link/IridiaTr2022-006.pdf), we make available a set of configuration files this repository's `configs_paper` directory.
+The files are named as the figure; for example, by running the simulator with the configuration file `configs_paper/fig2A.json`, it will generate all data needed to reproduce the plot of Figure 2A in the [article](https://iridia.ulb.ac.be/IridiaTrSeries/link/IridiaTr2022-006.pdf).
 
 ## Requirements
 To be able to run information-market, you must have:
